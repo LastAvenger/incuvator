@@ -16,7 +16,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 # USA
 
-CFLAGS = -g -Wall -D_GNU_SOURCE
+CFLAGS = -g -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
 netio: main.o netfs.o node.o lib.o protocol.o
 	gcc $(CFLAGS) -lnetfs -lfshelp -liohelp -lthreads -lports \

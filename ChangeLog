@@ -1,3 +1,7 @@
+2002-10-22  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* Makefile (CFLAGS): Added -D_FILE_OFFSET_BITS=64.
+
 2002-10-19  Moritz Schulte  <moritz@duesseldorf.ccc.de>
 
 	* netio.h (NETIO_VERSION): Set to "0.2".
@@ -21,8 +25,6 @@
 
 	* main.c: (main): Set netfs_root_node->nn_stat.st_fsid after
 	netfs_root_node->nn_stat is initialized.
-
-	* Makefile (CFLAGS): Added -D_FILE_OFFSET_BITS=64.
 	
 2002-05-27  Moritz Schulte  <moritz@duesseldorf.ccc.de>
 
