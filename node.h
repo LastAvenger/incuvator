@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as

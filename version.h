@@ -19,12 +19,11 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. */
 
 #ifndef HURD_VERSION
-#define HURD_VERSION "0.2"
+#define HURD_VERSION "0.3"
 #endif
 
 /* The standard way to print versions for --version.  */
-#define _SHV_SEP "; "
-#define STANDARD_HURD_VERSION(s, extra...) \
-  #s " (GNU Hurd" _SHV_SEP ##extra ") " HURD_VERSION
-
-   
+#define STANDARD_HURD_VERSION(s) \
+  #s " (GNU Hurd) " HURD_VERSION
+#define STANDARD_HURD_VERSION_EXTRA(s, extra) \
+  #s " (GNU Hurd; " extra ") " HURD_VERSION

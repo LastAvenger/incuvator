@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -31,7 +32,7 @@
 #include "lib.h"
 
 /* Try to alloc SIZE bytes into *MEM.  Return ENOMEM if malloc()
-    failed.  */
+   failed.  */
 error_t
 my_malloc (size_t size, void **mem)
 {
@@ -49,6 +50,7 @@ open_socket_server (int no, pf_t *sock)
   char *path;
   error_t err;
   pf_t port;
+
   err = asprintf (&path, "%s/%i", _SERVERS_SOCKET, no);
   if (err < 0)
     return ENOMEM;

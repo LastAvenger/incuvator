@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -55,15 +56,16 @@ netfs_attempt_lookup (struct iouser *user, struct node *dir,
 		      char *name, struct node **node)
 {
   error_t err;
+
   err = fshelp_access (&dir->nn_stat, S_IEXEC, user);
   if (err)
     goto out;
-  if (STRING_EQUAL (name, "."))
+  if (! strcmp (name, "."))
     {
       *node = dir;
       netfs_nref (*node);
     }
-  else if (STRING_EQUAL (name, ".."))
+  else if (! strcmp (name, ".."))
     {
       *node = dir->nn->dir;
       netfs_nref (*node);
@@ -81,7 +83,8 @@ netfs_attempt_lookup (struct iouser *user, struct node *dir,
 	    netfs_nref (*node);
 	}
       else
-	err = EOPNOTSUPP; /* FIXME?  */
+	/* Trying to look something inside beneath a port node.  */
+	err = ENOTDIR;
     }
 
  out:
@@ -237,6 +240,7 @@ error_t
 netfs_attempt_sync (struct iouser *cred, struct node *np,
 		    int wait)
 {
+  
   return EOPNOTSUPP;
 }
 
@@ -272,7 +276,18 @@ error_t
 netfs_attempt_mkdir (struct iouser *user, struct node *dir,
 		     char *name, mode_t mode)
 {
-  return EOPNOTSUPP;
+  error_t err = 0;
+
+  /* Creating of protocol directories is allowed.  */
+  if (dir->nn->dir)
+    err = EOPNOTSUPP;
+  else
+    {
+      err = protocol_register (name);
+      if (err == ENOENT)
+	err = EOPNOTSUPP;
+    }
+  return err;
 }
 
 /* Attempt to remove directory named NAME in DIR (which is locked) for
@@ -281,10 +296,14 @@ error_t
 netfs_attempt_rmdir (struct iouser *user, 
 		     struct node *dir, char *name)
 {
-  /* Let's allow unlinking of protocol directories.  */
+  error_t err = 0;
+
+  /* Removing of protocol directories is allowed.  */
   if (dir->nn->dir)
-    return EOPNOTSUPP;
-  return protocol_unregister (name);
+    err = EOPNOTSUPP;
+  else
+    err = protocol_unregister (name);
+  return err;
 }
 
 /* Create a link in DIR with name NAME to FILE for USER. Note that
@@ -315,6 +334,8 @@ error_t
 netfs_attempt_create_file (struct iouser *user, struct node *dir,
 			   char *name, mode_t mode, struct node **np)
 {
+  *np = 0;
+  mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }
 
@@ -333,6 +354,7 @@ netfs_check_open_permissions (struct iouser *user, struct node *np,
 			      int flags, int newnode)
 {
   error_t err = 0;
+
   if (! err && (flags & O_READ))
     err = fshelp_access (&np->nn_stat, S_IREAD, user);
   if (! err && (flags & O_WRITE))
@@ -350,39 +372,40 @@ netfs_attempt_read (struct iouser *cred, struct node *np,
 		    off_t offset, size_t *len, void *data)
 {
   error_t err = 0;
+
   if (! (np->nn->flags & PORT_NODE))
     *len = 0;
-  {
-    addr_port_t addrport;
-    char *bufp = (char *) data;
-    mach_msg_type_number_t nread = *len;
-    mach_port_t *ports;
-    mach_msg_type_number_t nports;
-    char *cdata = NULL;
-    mach_msg_type_number_t clen = 0;
-    int flags = 0;
+  else
+    {
+      addr_port_t addrport;
+      char *bufp = (char *) data;
+      mach_msg_type_number_t nread = *len;
+      mach_port_t *ports;
+      mach_msg_type_number_t nports;
+      char *cdata = NULL;
+      mach_msg_type_number_t clen = 0;
+      int flags = 0;
     
-    if (err)
-      goto out;
-    err = socket_recv (np->nn->sock, &addrport, flags, &bufp, &nread, 
-		       &ports, &nports, &cdata, &clen, &flags,
-		       nread);
-    if (err)
-      goto out;
-    
-    mach_port_deallocate (mach_task_self (), addrport);
-    vm_deallocate (mach_task_self (), (vm_address_t) cdata, clen);
-    if (bufp != (char *) data)
-      {
-	memcpy ((char *) data, bufp, nread);
-	vm_deallocate (mach_task_self (), (vm_address_t) bufp, nread);
-      }
-  }
- out:
+      err = socket_recv (np->nn->sock, &addrport, flags, &bufp, &nread, 
+			 &ports, &nports, &cdata, &clen, &flags,
+			 *len);
+      if (! err)
+	{
+	  mach_port_deallocate (mach_task_self (), addrport);
+	  vm_deallocate (mach_task_self (), (vm_address_t) cdata, clen);
+	  if (bufp != (char *) data)
+	    {
+	      memcpy ((char *) data, bufp, nread);
+	      vm_deallocate (mach_task_self (), (vm_address_t) bufp, nread);
+	    }
+	  *len = nread;
+	}
+    }
+
   return err;
 }
 
-/* Write to the locked file NP for user CRED starting at OFSET and
+/* Write to the locked file NP for user CRED starting at OFFSET and
    continuing for up to *LEN bytes from DATA.  Set *LEN to the amount
    successfully written upon return.  */
 error_t
@@ -390,14 +413,19 @@ netfs_attempt_write (struct iouser *cred, struct node *np,
 		     off_t offset, size_t *len, void *data)
 {
   error_t err = 0;
-  if (! np->nn->connected)
-    err = node_connect_socket (np);
-  if (err)
-    goto out;
-  err = socket_send (np->nn->sock, MACH_PORT_NULL, 0, (char *) data,
-		     *len, NULL, MACH_MSG_TYPE_COPY_SEND, 0, NULL, 0,
-		     (int *) len);
- out:
+
+  if (np->nn->flags & PORT_NODE)
+    {
+      if (! np->nn->connected)
+	err = node_connect_socket (np);
+      if (! err)
+	err = socket_send (np->nn->sock, MACH_PORT_NULL, 0, (char *) data,
+			   *len, NULL, MACH_MSG_TYPE_COPY_SEND, 0, NULL, 0,
+			   (int *) len);
+    }
+  else
+    err = EISDIR;
+
   return err;
 }
 
@@ -556,6 +584,7 @@ block_for_reading (socket_t sock)
   mach_port_t reply_port;
   int type = SELECT_READ;
   error_t err;
+
   do
     {
       reply_port = mach_reply_port ();
@@ -587,13 +616,17 @@ netfs_S_io_read (struct protid *user,
 
   node = user->po->np;
 
-  /* This is our special hack.  */
-  if (! node->nn->connected)
-    err = node_connect_socket (node);
-  if (err || node->nn->flags & PORT_NODE)
-    err = block_for_reading (node->nn->sock);
-  if (err)
-    return err;
+  /* This is our special hack; applies only to PORT_NODEs.  */
+  if (node->nn->flags & PORT_NODE)
+    {
+      err = 0;
+      if (! node->nn->connected)
+	err = node_connect_socket (node);
+      if (! err)
+	err = block_for_reading (node->nn->sock);
+      if (err)
+	return err;
+    }
 
   mutex_lock (&user->po->np->lock);
 

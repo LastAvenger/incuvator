@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2002 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -16,8 +17,7 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
    USA */
 
-error_t protocol_register_protocols (void);
-error_t protocol_register (int id, char *name,
-			   error_t (*socket_open_func)  (struct node *node));
-error_t protocol_unregister (char *name);;
+error_t protocol_register_default (void);
+error_t protocol_register (char *name);
+error_t protocol_unregister (char *name);
 error_t protocol_find_node (char *name, struct node **node);

@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2002 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -25,10 +26,22 @@
 #include "lib.h"
 #include "node.h"
 
+static error_t protocol_socket_open_TCP (struct node *node);
+static error_t protocol_socket_open_UDP (struct node *node);
+
+#define PROTOCOL_INIT(p) { PROTOCOL_ID_##p, PROTOCOL_NAME_##p, \
+                           protocol_socket_open_##p }
+
+static protocol_t protocols[] = { PROTOCOL_INIT (TCP),
+				  PROTOCOL_INIT (UDP),
+				  { 0, NULL, NULL } };
+
+static error_t protocol_find_by_name (char *name, protocol_t **protocol);
+
 /* Connect the node *NODE with style STYLE (SOCK_STREAM or
    SOCK_DGRAM).  Used by protocol_socket_open_{tcp,udp}.  Return 0 on
    success or an error code.  */
-error_t
+static error_t
 protocol_socket_open_std (struct node *node, int style)
 {
   extern pf_t socket_server;
@@ -66,15 +79,15 @@ protocol_socket_open_std (struct node *node, int style)
 }
 
 /* Open a TCP socket for *NODE.  Return 0 on success or an error code.  */
-error_t
-protocol_socket_open_tcp (struct node *node)
+static error_t
+protocol_socket_open_TCP (struct node *node)
 {
   return protocol_socket_open_std (node, SOCK_STREAM);
 }
 
 /* Open a UDP socket for *NODE.  Return 0 on success or an error code.  */
-error_t
-protocol_socket_open_udp (struct node *node)
+static error_t
+protocol_socket_open_UDP (struct node *node)
 {
   return protocol_socket_open_std (node, SOCK_DGRAM);
 }
@@ -86,43 +99,37 @@ error_t
 protocol_find_node (char *name, struct node **node)
 {
   struct node *np;
+  error_t err = ENOENT;
+
   for (np = netfs_root_node->nn->entries;
        np && strcmp (np->nn->protocol->name, name);
        np = np->next);
-  if (! np)
-    return ENOENT;
-  *node = np;
-  return 0;
+  if (np)
+    {
+      *node = np;
+      err = 0;
+    }
+  return err;
 }
 
 /* Register a protocol specified by ID and NAME, creating an according
    node.  Sockets for that protocol get opened by SOCKET_OPEN_FUNC.
    Return 0 on success or an error code.  */
 error_t
-protocol_register (int id, char *name,
-		   error_t (*socket_open_func) (struct node *node))
+protocol_register (char *name)
 {
   error_t err;
-  struct protocol *protocol;
-  err = my_malloc (sizeof (struct protocol), (void **) &protocol);
+  protocol_t *protocol;
+
+  err = protocol_find_by_name (name, &protocol);
   if (err)
-    return err;
-  protocol->name = strdup (name);
-  if (! protocol->name)
-    {
-      free (protocol);
-      return ENOMEM;
-    }
+    return EOPNOTSUPP;		/* No protocol definition by that name
+				   found.  */
   err = node_make_protocol_node (netfs_root_node, protocol);
   if (err)
-    {
-      free (protocol->name);
-      free (protocol);
-      return err;
-    }
-  protocol->id = id;
-  protocol->socket_open = socket_open_func;
-  return 0;
+    return err;
+
+  return err;
 }
 
 /* Unregister the protocol specified by NAME, drop the reference to
@@ -133,6 +140,7 @@ protocol_unregister (char *name)
 {
   struct node *np;
   error_t err;
+
   err = protocol_find_node (name, &np);
   if (err)
     return err;
@@ -143,10 +151,32 @@ protocol_unregister (char *name)
 /* Register the protocols - create according nodes.  Return 0 on
    success or an error code.  */
 error_t
-protocol_register_protocols (void)
+protocol_register_default (void)
 {
-  return (protocol_register (PROTOCOL_ID_TCP, "tcp",
-			     protocol_socket_open_tcp)
-	  || protocol_register (PROTOCOL_ID_UDP, "udp",
-				protocol_socket_open_udp));
+  protocol_t *p;
+  error_t err = 0;
+
+  for (p = protocols; ! err && p->name; p++)
+    err = protocol_register (p->name);
+
+  return err;
+}
+
+/* Lookup the protocol information for NAME and store them in
+   *PROTOCOL.  Return zero on success or ENOENT if the protocol for
+   NAME could not be found.  */
+static error_t
+protocol_find_by_name (char *name, protocol_t **protocol)
+{
+  protocol_t *p;
+  error_t err = 0;
+
+  for (p = protocols; p->name && strcmp (p->name, name); p++);
+
+  if (p->name)
+    *protocol = p;
+  else
+    err = ENOENT;
+
+  return err;
 }

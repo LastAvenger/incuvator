@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -89,7 +90,6 @@ node_destroy (struct node *np)
     free (np->nn->host);
   else if (np->nn->flags & PROTOCOL_NODE)
     {
-      free (np->nn->protocol);
       *np->prevp = np->next;
       if (np->next)
 	np->next->prevp = np->prevp;
@@ -107,10 +107,11 @@ node_destroy (struct node *np)
 /* Create a new protocol node for *PROTOCOL in the directory *DIR.
    Return 0 on success or an error code.  */
 error_t
-node_make_protocol_node (struct node *dir, struct protocol *protocol)
+node_make_protocol_node (struct node *dir, protocol_t *protocol)
 {
   struct node *node;
   error_t err;
+
   err = node_make_new (dir, 1, &node);
   if (err)
     return err;
@@ -201,7 +202,8 @@ error_t
 node_connect_socket (struct node *np)
 {
   error_t err;
-  err = (*np->nn->protocol->socket_open) (np);
+
+  err = (*np->nn->protocol->socket_open_func) (np);
   if (! err)
     np->nn->connected = 1;
   return err;

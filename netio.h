@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -20,20 +21,26 @@
 #include <stdint.h>
 #include <maptime.h>
 
-#define NETIO_VERSION "0.2"
+#define NETIO_VERSION "0.3cvs"
 
-#define OPENONLY_STATE_MODES (O_CREAT|O_EXCL|O_NOLINK|O_NOTRANS|O_NONBLOCK)
-
+/* The supported protocols.  */
 #define PROTOCOL_ID_TCP 0x00000001
 #define PROTOCOL_ID_UDP 0x00000002
+#define PROTOCOL_NAME_TCP "tcp"
+#define PROTOCOL_NAME_UDP "udp"
 
-struct protocol
+/* Type for functions, which connect a node socket.  */
+typedef error_t (*socket_open_func_t) (struct node *node);
+
+/* One of these items per supported protocol.  */
+typedef struct protocol
 {
-  char *name;
   int id;
-  error_t (*socket_open)  (struct node *np);
-};
+  char *name;
+  socket_open_func_t socket_open_func;
+} protocol_t;
 
+/* The different kinds of nodes managed by netio.  */
 #define ROOT_NODE     0x00000001
 #define PROTOCOL_NODE 0x00000002
 #define HOST_NODE     0x00000004
@@ -43,14 +50,17 @@ struct netnode
 {
   unsigned short int flags; /* Either ROOT_NODE, PROTOCOL_NODE,
 			       HOST_NODE or PORT_NODE.  */
-  char *host;
-  uint16_t port;
-  struct protocol *protocol;
-  socket_t sock;
-  addr_port_t addr;
-  unsigned short int connected;
-  struct node *entries;
-  struct node *dir;
+  char *host;			/* The host to connect to.  */
+  uint16_t port;		/* The port to connect to.  */
+  struct protocol *protocol;	/* The protocol information.  */
+  socket_t sock;		/* Our socket port.  */
+  addr_port_t addr;		/* Our socket address port.  */
+  unsigned short int connected;	/* non-zero, if the socket is
+				   connected.  */
+  struct node *entries;		/* The entries in this directory, only
+				   useful for the root node.  */
+  struct node *dir;		/* The parent directory.  */
 };
 
+/* Used for touching the [acm]times of our nodes.  */
 extern volatile struct mapped_time_value *netio_maptime;

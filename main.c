@@ -1,5 +1,6 @@
 /* netio - creates socket ports via the filesystem
-   Copyright (C) 2001, 02 Moritz Schulte <moritz@duesseldorf.ccc.de>
+   Copyright (C) 2001, 02 Free Software Foundation, Inc.
+   Written by Moritz Schulte.
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -42,7 +43,7 @@ const char *argp_program_bug_address =
 const char *doc = "Hurd netio translator v" NETIO_VERSION;
 
 /* The underlying node.  */
-mach_port_t ul_node;
+static mach_port_t ul_node;
 
 /* The socket server, PF_INET for us.  */
 pf_t socket_server;
@@ -79,11 +80,13 @@ main (int argc, char **argv)
   error_t err;
   extern struct stat stat_default;
 
+  /* Start the server.  */
   argp_parse (&netio_argp, argc, argv, 0, 0, 0);
   task_get_bootstrap_port (mach_task_self (), &bootstrap_port);
   netfs_init ();
   ul_node = netfs_startup (bootstrap_port, 0);
 
+  /* Initialize netio.  */
   err = node_make_root_node (&netfs_root_node);
   if (err)
     error (EXIT_FAILURE, err, "cannot create root node");
@@ -141,9 +144,9 @@ main (int argc, char **argv)
   if (err)
     error (EXIT_FAILURE, err, "open_socket_server");
 
-  err = protocol_register_protocols ();
+  err = protocol_register_default ();
   if (err)
-    error (EXIT_FAILURE, err, "protocol_register_protocols");
+    error (EXIT_FAILURE, err, "protocol_register_default");
 
   for (;;)
     netfs_server_loop ();

@@ -1,5 +1,68 @@
+2002-10-23  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* netfs.c (netfs_attempt_lookup): Return ENOTDIR instead of
+	EOPNOTSUPP in case the user tries to look something up beneath a
+	port node.
+	(netfs_S_io_read): Correct the netio specific hack, make it apply
+	only for PORT_NODEs.
+	(netfs_attempt_create_file): Clear *np and unlocked &dir->lock.
+	(netfs_attempt_write): Set err to EISDIR if trying to write to a
+	node, which is not a PORT_NODE.
+	(netfs_attempt_read): Set *len to 0, if trying to read from a
+	node, which is not a PORT_NODE, otherwise try to read from socket
+	via socket_recv; update *len to nread after successfull reading.
+	* main.c: Declare ul_node static.
+	* lib.h: Include comments from lib.c.
+	* version.h: Updated.
+	* protocol.c (PROTOCOL_INIT): New macro, used in initializing
+	protocols array.
+	(protocol_socket_open_tcp): Renamed to protocol_socket_open_TCP.
+	(protocol_socket_open_udp): Renamed to protocol_socket_open_UDP.
+	(protocol_find_node): Cleanup.
+	* main.c: Assigned Copyright to FSF.
+	* Makefile: Likewise.
+	* lib.c: Likewise.
+	* lib.h: Likewise.
+	* netfs.c: Likewise.
+	* netio.h: Likewise.
+	(PROTOCOL_NAME_TCP): Defined to "tcp".
+	(PROTOCOL_NAME_UDP): Defined to "udp".
+	Typedef for socket_open_func_t.
+	(OPENONLY_STATE_MODES): Remove definition.
+	Added some comments.
+	* node.c: Likewise.
+	* node.h: Likewise.
+	* protocol.c: Likewise.
+	(protocol_socket_open_std): Added static keyword.
+	(protocol_socket_open_tcp): Likewise.
+	(protocol_socket_open_udp): Likewise.
+	Declared protocol_socket_open_tcp and protocol_socket_open_udp.
+	* protocol.h: Likewise.
+	* protocol.c (protocol_register_protocols): Renamed to
+	protocol_register_default ...
+	* protocol.h: Likewise.
+	* main.c (main): ... and used.
+	* netfs.c (netfs_attempt_mkdir): Call protocol_register to create
+	protocol directories beneath the root directory.
+	(netfs_attempt_rmdir): Cleanup.
+
 2002-10-22  Moritz Schulte  <moritz@duesseldorf.ccc.de>
 
+	* protocol.c (protocol_register): Don't take "id" and
+	"socket_open_func" arguments.
+	(protocol_register): Don't allocate new protocol structure for the
+	node, instead use a pointer to the static protocols structure.
+	(protocol_find_by_name): New function.
+	(protocol_register_protocols): Rewritten to iterate over protocols
+	list.
+	* protocol.h (protocol_register): Likewise.
+	* node.c (node_destroy): Don't free np->nn->protocol.
+	* netio.h (struct protocol): Typedef to protocol_t.
+	* protocol.c (protocols): New array, initialized with protocol
+	information.
+	* netfs.c (netfs_attempt_lookup): Use strcmp instead of
+	STRING_EQUAL.
+	* lib.h: Remove STRING_EQUAL definition.
 	* Makefile (CFLAGS): Added -D_FILE_OFFSET_BITS=64.
 
 2002-10-19  Moritz Schulte  <moritz@duesseldorf.ccc.de>
@@ -9,15 +72,12 @@
 2002-10-19  Moritz Schulte  <moritz@duesseldorf.ccc.de>
 
 	* main.c (main): Initialize stat_default.
-
 	* node.c: New variable: struct stat stat_default.
 	(node_make_new): Initialize (*node)->nn_stat with stat_default.
-
 	* node.c (node_make_protocol_node): Remove unnecessary nn_stat
 	initialization.
 	(node_make_host_node): Likewise.
 	(node_make_port_node): Likewise.
-
 	* main.c: New variable: int fsid ...
 	(main): ... initialized with getpid ().
 
