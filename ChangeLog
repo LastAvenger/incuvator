@@ -1,4 +1,29 @@
+2002-10-19  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* netio.h (NETIO_VERSION): Set to "0.2".
+
+2002-10-19  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* main.c (main): Initialize stat_default.
+
+	* node.c: New variable: struct stat stat_default.
+	(node_make_new): Initialize (*node)->nn_stat with stat_default.
+
+	* node.c (node_make_protocol_node): Remove unnecessary nn_stat
+	initialization.
+	(node_make_host_node): Likewise.
+	(node_make_port_node): Likewise.
+
+	* main.c: New variable: int fsid ...
+	(main): ... initialized with getpid ().
+
+2002-10-16  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* main.c: (main): Set netfs_root_node->nn_stat.st_fsid after
+	netfs_root_node->nn_stat is initialized.
+
+	* Makefile (CFLAGS): Added -D_FILE_OFFSET_BITS=64.
+	
 2002-05-27  Moritz Schulte  <moritz@duesseldorf.ccc.de>
 
 	* main.c (netfs_server_name, netfs_server_version): New variables.
-

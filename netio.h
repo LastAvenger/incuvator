@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <maptime.h>
 
-#define NETIO_VERSION "0.1"
+#define NETIO_VERSION "0.2"
 
 #define OPENONLY_STATE_MODES (O_CREAT|O_EXCL|O_NOLINK|O_NOTRANS|O_NONBLOCK)
 

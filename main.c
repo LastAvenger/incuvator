@@ -33,12 +33,13 @@
 
 #include "version.h"
 
+char *netfs_server_name = "netio";
+char *netfs_server_version = HURD_VERSION;
+
 const char *argp_program_version = STANDARD_HURD_VERSION (netio);
 const char *argp_program_bug_address =
 "Moritz Schulte <moritz@duesseldorf.ccc.de>";
 const char *doc = "Hurd netio translator v" NETIO_VERSION;
-char *netfs_server_name = "netio";
-char *netfs_server_version = HURD_VERSION;
 
 /* The underlying node.  */
 mach_port_t ul_node;
@@ -48,6 +49,9 @@ pf_t socket_server;
 
 /* Has to be defined for libnetfs...  */
 int netfs_maxsymlinks = 0;
+
+/* Our filesystem id - will be our pid.  */
+int fsid = 0;
 
 /* Used for updating node information.  */
 volatile struct mapped_time_value *netio_maptime;
@@ -73,6 +77,7 @@ main (int argc, char **argv)
 			     NULL, doc, NULL };
   mach_port_t bootstrap_port;
   error_t err;
+  extern struct stat stat_default;
 
   argp_parse (&netio_argp, argc, argv, 0, 0, 0);
   task_get_bootstrap_port (mach_task_self (), &bootstrap_port);
@@ -82,15 +87,16 @@ main (int argc, char **argv)
   err = node_make_root_node (&netfs_root_node);
   if (err)
     error (EXIT_FAILURE, err, "cannot create root node");
-
+  fsid = getpid ();
+  
   {
     /* Here we adjust the root node permissions.  */
     struct stat ul_node_stat;
     err = io_stat (ul_node, &ul_node_stat);
     if (err)
       error (EXIT_FAILURE, err, "cannot stat underlying node");
-    netfs_root_node->nn_stat.st_fsid = getpid ();
     netfs_root_node->nn_stat = ul_node_stat;
+    netfs_root_node->nn_stat.st_fsid = fsid;
     netfs_root_node->nn_stat.st_mode = S_IFDIR | (ul_node_stat.st_mode
 						  & ~S_IFMT & ~S_ITRANS);
 
@@ -114,6 +120,22 @@ main (int argc, char **argv)
   fshelp_touch (&netfs_root_node->nn_stat,
 		TOUCH_ATIME|TOUCH_MTIME|TOUCH_CTIME,
 		netio_maptime);
+
+  /* Here we initialize the default stat information for netio
+     nodes.  */
+  stat_default.st_fstype = FSTYPE_MISC;
+  stat_default.st_fsid = fsid;
+  stat_default.st_ino = 1;	/* ? */
+  stat_default.st_gen = 0;
+  stat_default.st_rdev = 0;
+  stat_default.st_mode = 0;
+  stat_default.st_nlink = 0;
+  stat_default.st_uid = netfs_root_node->nn_stat.st_uid;
+  stat_default.st_gid = netfs_root_node->nn_stat.st_gid;
+  stat_default.st_size = 0;
+  stat_default.st_blksize = 0;
+  stat_default.st_blocks = 0;
+  stat_default.st_author = netfs_root_node->nn_stat.st_author;
 
   err = open_socket_server (PF_INET, &socket_server);
   if (err)

@@ -24,6 +24,9 @@
 #include "netio.h"
 #include "lib.h"
 
+/* The default stat information for netio nodes.  */
+struct stat stat_default;
+
 /* Create a new node in the directory *DIR (if DIR is nonzero) and
    store it in *NODE.  If CONNECT is true (in which case *DIR has to
    be a valid directory node), attach the new node to the list of
@@ -52,6 +55,8 @@ node_make_new (struct node *dir, int connect, struct node **node)
   (*node)->nn->connected = 0;
   (*node)->nn->entries = 0;
   (*node)->nn->dir = dir;
+  (*node)->nn_stat = stat_default;
+
   if (dir)
     netfs_nref (dir);
 
@@ -116,12 +121,7 @@ node_make_protocol_node (struct node *dir, struct protocol *protocol)
     | S_IRGRP | S_IXGRP
     | S_IROTH | S_IXOTH;
   node->nn_stat.st_ino = protocol->id;
-  node->nn_stat.st_dev = netfs_root_node->nn_stat.st_dev;
-  node->nn_stat.st_uid = netfs_root_node->nn_stat.st_uid;
-  node->nn_stat.st_gid = netfs_root_node->nn_stat.st_gid;
-  node->nn_stat.st_size = 0; /* ?  */
-  node->nn_stat.st_blocks = 0;
-  node->nn_stat.st_blksize = 0;
+  node->nn_stat.st_nlink = 2;
   fshelp_touch (&node->nn_stat, TOUCH_ATIME | TOUCH_CTIME | TOUCH_MTIME,
 		netio_maptime);
   return err;
@@ -148,13 +148,6 @@ node_make_host_node (struct iouser *user, struct node *dir, char *host,
   np->nn->flags |= HOST_NODE;
   np->nn->protocol = dir->nn->protocol;
   np->nn_stat.st_mode = S_IFDIR | S_IRUSR | S_IXUSR ;
-  np->nn_stat.st_ino = 1; /* ?  */
-  np->nn_stat.st_dev = netfs_root_node->nn_stat.st_dev;
-  np->nn_stat.st_uid = *user->uids->ids;
-  np->nn_stat.st_gid = *user->gids->ids;
-  np->nn_stat.st_size = 0; /* ?  */
-  np->nn_stat.st_blocks = 0;
-  np->nn_stat.st_blksize = 0;
   fshelp_touch (&np->nn_stat, TOUCH_ATIME | TOUCH_CTIME | TOUCH_MTIME,
 		netio_maptime);
   *node = np;
@@ -181,13 +174,6 @@ node_make_port_node (struct iouser *user, struct node *dir,
   np->nn->flags |= HOST_NODE;
   np->nn->protocol = dir->nn->protocol;
   np->nn_stat.st_mode = S_IFSOCK | S_IRUSR | S_IWUSR ;
-  np->nn_stat.st_ino = 1; /* ? */
-  np->nn_stat.st_dev = netfs_root_node->nn_stat.st_dev;
-  np->nn_stat.st_uid = *user->uids->ids;
-  np->nn_stat.st_gid = *user->gids->ids;
-  np->nn_stat.st_size = 0; /* ?  */
-  np->nn_stat.st_blocks = 0;
-  np->nn_stat.st_blksize = 0;
   fshelp_touch (&np->nn_stat, TOUCH_ATIME | TOUCH_CTIME | TOUCH_MTIME,
 		netio_maptime);
   *node = np;
