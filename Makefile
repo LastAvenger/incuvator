@@ -1,5 +1,6 @@
 # Makefile for gopherfs
 # 
+#   Copyright (C) 2002 James A. Morrison
 #   Copyright (C) 1997, 2000 Free Software Foundation, Inc.
 #
 #   This program is free software; you can redistribute it and/or
@@ -21,13 +22,20 @@ makemode := server
 
 target = gopherfs
 
-#SRCS = ftpfs.c fs.c host.c netfs.c dir.c conn.c ccache.c node.c ncache.c
+CC = gcc
+CFLAGS = -Wall -g -D_GNU_SOURCE
+INCLUDES = -I.
 SRCS = gopherfs.c args.c netfs.c gopher.c node.c
-#LCLHDRS = ftpfs.h ccache.h
 LCLHDRS = gopherfs.h
 
 OBJS = $(SRCS:.c=.o)
-#HURDLIBS = netfs fshelp iohelp threads ports ihash ftpconn shouldbeinlibc
-HURDLIBS = netfs fshelp iohelp ports
+HURDLIBS = -lnetfs -lfshelp -liohelp -lports
 
-include ../Makeconf
+all: $(target)
+
+$(target): $(OBJS)
+	$(CC) $(CFLAGS) -o $(target) $(OBJS) $(HURDLIBS)
+
+%.o: %.c $(LCLHDRS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
+

@@ -1,0 +1,6 @@
+2002-04-15  James A. Morrison  <ja2morri@uwaterloo.ca>
+
+	* node.c (gopherfs_make_netnode): Try to free all allocations on 
+	failure.
+	* Makefile: Remove dependancy on Makeconf
+

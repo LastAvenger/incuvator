@@ -34,7 +34,6 @@ gopherfs_make_netnode (char type, char *name, char *selector,
 		       char *server, unsigned short port)
 {
   struct netnode *nn;
-  int err;
 
   nn = (struct netnode *) malloc (sizeof (struct netnode));
   if (!nn)
@@ -42,34 +41,22 @@ gopherfs_make_netnode (char type, char *name, char *selector,
   memset (nn, 0, sizeof (struct netnode));
   nn->type = type;
   nn->name = strdup (name);
-  if (! nn->name)
-    err = 1;
   nn->selector = strdup (selector);
-  if (! nn->selector)
-    err = 2;
   nn->server = strdup (server);
-  if (! nn->server)
-    err = 3;
   nn->port = port;
   nn->ents = NULL;
   nn->noents = FALSE;
   /* XXX init cache references */
 
-  switch (err)
-    {
-    case 4:
+  if (!(nn->server && nn->selector && nn->name))
+    { /* We are allowed to free NULL pointers */
       free (nn->server);
-    case 3:
       free (nn->selector);
-    case 2:
       free (nn->name);
-    case 1:
       free (nn);
-    case 0:
       return NULL;
-    default:
-      return nn;
     }
+  return nn;
 
 }
 
