@@ -1,0 +1,4 @@
+*	Consider caching hostname lookups and reusing the parent node's
+	server name, so as not to allocate it twice.
+
+* learn how to deal with (struct node *)->references
