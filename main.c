@@ -37,6 +37,8 @@ const char *argp_program_version = STANDARD_HURD_VERSION (netio);
 const char *argp_program_bug_address =
 "Moritz Schulte <moritz@duesseldorf.ccc.de>";
 const char *doc = "Hurd netio translator v" NETIO_VERSION;
+char *netfs_server_name = "netio";
+char *netfs_server_version = HURD_VERSION;
 
 /* The underlying node.  */
 mach_port_t ul_node;

@@ -1,0 +1,4 @@
+2002-05-27  Moritz Schulte  <moritz@duesseldorf.ccc.de>
+
+	* main.c (netfs_server_name, netfs_server_version): New variables.
+
