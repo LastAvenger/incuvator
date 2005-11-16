@@ -32,3 +32,10 @@ cvsfs.pg
 cvsfs.toc
 cvsfs.tp
 cvsfs.vr
+INSTALL
+depcomp
+stamp-h1 stamp-vti
+texinfo.tex
+mdate-sh
+install-sh
+missing
