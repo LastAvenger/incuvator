@@ -4,13 +4,13 @@ this file is some kind of TODO file, I use it to take down notes, what to
 do, when and how ...
 
 * first things first
-** you're welcome to participate in progressing cvsfs4hurd
+** you're welcome to participate in progressing cvsfs
    if you got questions concerning it, don't hesitate but send me
-   a mail to ssiegl@gmx.de
+   a mail to stesie@brokenpipe.de
 
-** cvsfs4hurd's code is real crap!
+** cvsfs' code is real crap!
 *** do you think so? please tell me what you don't like
-    cvsfs4hurd is actually my first project, related to the
+    cvsfs is actually my first project, related to the
     Hurd and actually my first step towards OS-near programming.
 
 ** cvs_*.[ch] files should stay GNU Hurd independant
@@ -20,7 +20,7 @@ do, when and how ...
    rewritten when aiming to port to some other platform.
 
 ** source code documentation
-   all functions in all of cvsfs4hurd's files should be well documented,
+   all functions in all of cvsfs's files should be well documented,
    this unfortunately isn't the case currently.  if you want to, you may
    supply some however.  when implementing new stuff, just write it first,
    so that won't happen in future ;)
@@ -52,4 +52,4 @@ do, when and how ...
 
 
 jupp, enough for the time being ...
-$Id: HACKING,v 1.8 2004/10/10 11:58:41 stesie Exp $
+$Id: HACKING,v 1.9 2005/11/16 21:18:08 stesie Exp $

@@ -1,16 +1,16 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright(C) 2004 by Stefan Siegl <ssiegl@gmx.de>, Germany
+# Copyright(C) 2004 by Stefan Siegl <stesie@brokenpipe.de>, Germany
 
 AC_PREREQ(2.59)
-AC_INIT(cvsfs4hurd, 0.2, cvsfs4hurd-devel@lists.berlios.de)
-AC_REVISION($Revision: 1.5 $)
+AC_INIT(cvsfs, 0.2, hurdextras-hackers@nongnu.org)
+AC_REVISION($Revision: 1.6 $)
 AC_CONFIG_SRCDIR([cvs_files.c])
 AM_CONFIG_HEADER(config.h)
 
 # Initialize automake 
-AM_INIT_AUTOMAKE(cvsfs4hurd, 0.2)
+AM_INIT_AUTOMAKE(cvsfs, 0.2)
 
 # Checks for programs.
 AC_PROG_CC

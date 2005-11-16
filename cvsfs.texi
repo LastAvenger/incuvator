@@ -1,5 +1,5 @@
 \input texinfo @c -*- texinfo -*- 
-@c $Id: cvsfs.texi,v 1.5 2005/03/19 18:36:22 stesie Exp $
+@c $Id: cvsfs.texi,v 1.6 2005/11/16 21:18:08 stesie Exp $
 @c %**start of header
 @setfilename cvsfs.info
 @include version.texi
@@ -24,10 +24,10 @@ Free Documentation License''.
 @end copying
 
 @titlepage
-@title @sc{cvsfs4hurd}
+@title @sc{cvsfs}
 @subtitle (virtual CVS filesystem translator for the GNU Hurd)
 @subtitle for version @value{VERSION}, @value{UPDATED}
-@author Stefan Siegl (@email{ssiegl@@gmx.de})
+@author Stefan Siegl (@email{stesie@@brokenpipe.de})
 
 @page
 @vskip 0pt plus 1filll
@@ -107,17 +107,15 @@ free download from the internet.  For more information on
 downloading @sc{cvsfs} and other @sc{cvsfs} topics, see:
 
 @example
-@url{http://cvsfs4hurd.berlios.de/}
+@url{http://savannah.nongnu.org/projects/hurdextras/}
 @end example
 
 @cindex Mailing list
 @cindex List, mailing list
-There is a mailing list @email{cvsfs4hurd-devel@@lists.berlios.de},
-devoted to @sc{cvsfs}.  To subscribe or unsubscribe write to
-@email{cvsfs4hurd-devel-request@@lists.berlios.de}. 
-The mailing list isn't thought to be a list for developer discussion
-only, even so the name states so.  It's just due to the quite low 
-traffic that there is no separate users discussion list.
+There is a mailing list @email{hurdextras-hackers@@nongnu.org},
+which may be used for discussions concerning @sc{cvsfs}.  
+To subscribe or unsubscribe write to
+@email{hurdextras-hackers-request@@nongnu.org}. 
 
 @c ---------------------------------------------------------------------------
 @node What is cvsfs not?
@@ -243,16 +241,16 @@ it to read from an other password file,  supply it's directory using
 the @option{--homedir} option.
 
 @cindex Password, adding to .cvspass
-If there is no entry for the CVSROOT of choice in your passwo<rd file,
+If there is no entry for the CVSROOT of choice in your password file,
 simply use CVS' @code{login} command.  For example, if you would like
-to log into cvsfs4hurd's CVS repository using my credentials, do
+to log into cvsfs's CVS repository using my credentials, do
 something like that:
 
 @example
-$ cvs -d:pserver:stesie@@cvs.berlios.de:/cvsroot/cvsfs4hurd login
+$ cvs -d:pserver:stesie@@savannah.nongnu.org:/cvsroot/hurdextras login
 CVS password: <password>
 $ settrans -a cvsfs-src /sbin/cvsfs --user stesie \
-           cvs.berlios.de /cvsroot/cvsfs4hurd cvsfs
+           savannah.nongnu.org /cvsroot/hurdextras cvsfs
 @end example
 
 @c ---------------------------------------------------------------------------

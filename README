@@ -1,9 +1,9 @@
-cvsfs4hurd - the CVS virtual filesystem for the GNU Hurd
+cvsfs - the CVS virtual filesystem for the GNU Hurd
 
 
  what is it?
 ==========================
-   cvsfs4hurd is a virtual (netfs based) filesystem allowing you to mount
+   cvsfs is a virtual (netfs based) filesystem allowing you to mount
    remotely located CVS modules into your local filesystem.  The version
    controlled files will appear to you just like regular ones.  If you just
    want to view one file (or a small bunch) you furthermore save a lot of
@@ -46,10 +46,10 @@ cvsfs4hurd - the CVS virtual filesystem for the GNU Hurd
 
    For example I could use 
 
-     settrans -a test ./cvsfs -rssh -u stesie cvs.berlios.de \
-        /cvsroot/cvsfs4hurd cvsfs
+     settrans -a test ./cvsfs -rssh -u stesie savannah.nongnu.org \
+        /cvsroot/hurdextras cvsfs
 
-   to access the CVS repository of cvsfs4hurd.
+   to access the CVS repository of cvsfs.
 
    You probably want to use authorized-keys feature of ssh, as you will
    not be able to enter it interactively, since cvsfs translator does not
@@ -58,14 +58,12 @@ cvsfs4hurd - the CVS virtual filesystem for the GNU Hurd
 
  it doesn't work! what to do now?
 ========================================
-   cvsfs4hurd is work in progress.  If you stumble over a bug,
-   please please either tell me by writing an email or by filing a bug report
-   on 
+   cvsfs is work in progress.  If you stumble over a bug, please
+   please either tell me by writing an email or by filing a bug
+   report.
 
-     http://developer.berlios.de/projects/cvsfs4hurd
-
-   Before complaining you probably want to make sure that you're using the
-   most recent cvs version.
+   Before complaining you probably want to make sure that you're
+   using the most recent cvs version.
 
    Patches against CVS HEAD are welcome as well of course ;)
 
@@ -74,8 +72,8 @@ cvsfs4hurd - the CVS virtual filesystem for the GNU Hurd
 More (detailed) documentation can be found in the cvsfs texinfo
 manual.  Enter 'info cvsfs' at the command line to display it.
 
-Have fun with cvsfs4hurd
+Have fun with cvsfs
  and enjoy the GNU generation ..
 
-Stefan Siegl <ssiegl@gmx.de>
-$Id: README,v 1.6 2005/04/03 09:56:31 stesie Exp $
+Stefan Siegl <stesie@brokenpipe.de>
+$Id: README,v 1.7 2005/11/16 21:18:08 stesie Exp $

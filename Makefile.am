@@ -2,7 +2,7 @@
 # Used by automake and configure to create Makefile.
 #
 # Copyright(C) 2004 Stefan Siegl, Germany
-# Written by Stefan Siegl <ssiegl@gmx.de>
+# Written by Stefan Siegl <stesie@brokenpipe.de>
 #
 
 bin_PROGRAMS=cvsfs

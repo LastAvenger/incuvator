@@ -1,12 +1,12 @@
 /**********************************************************
  * cvsfs.c
  *
- * Copyright (C) 2004, 2005 by Stefan Siegl <ssiegl@gmx.de>, Germany
+ * Copyright (C) 2004, 2005 by Stefan Siegl <stesie@brokenpipe.de>, Germany
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Publice License,
  * version 2 or any later. The license is contained in the COPYING
- * file that comes with the cvsfs4hurd distribution.
+ * file that comes with the cvsfs distribution.
  *
  * translator startup code (netfs startup & argp handling)
  */
@@ -57,7 +57,7 @@ static const struct argp_child argp_children[] =
 /* documentation, written out when called with either --usage or --help */
 const char *argp_program_version = "cvsfs (" PACKAGE ") " VERSION "\n"
 "Written by Stefan Siegl\n\n"
-"Copyright (C) 2004, 2005 Stefan Siegl <ssiegl@gmx.de>, Germany\n"
+"Copyright (C) 2004, 2005 Stefan Siegl <stesie@brokenpipe.de>, Germany\n"
 "This is free software; see the source for copying conditions.  There is NO\n"
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 "\n";
