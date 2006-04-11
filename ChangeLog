@@ -1,3 +1,10 @@
+2005-12-31  Manuel Menal <mmenal@hurdfr.org>
+
+	* Makefile (CFLAGS): Add -D_FILE_OFFSET_BITS=64
+	* netfs.c: revert previous changes.
+	* gopherfs.c (main): show "loop" output only when in
+	debug mode.
+
 2002-04-15  Ben Asseltsine  <ben@asselstine.com>
 
 	* args.c (parse_opt): new option to specify a port.

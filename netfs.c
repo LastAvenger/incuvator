@@ -378,7 +378,7 @@ error_t netfs_attempt_chflags (struct iouser *cred, struct node *node,
 /* This should attempt to set the size of the file NODE (for user CRED) to
    SIZE bytes long. */
 error_t netfs_attempt_set_size (struct iouser *cred, struct node *node,
-																loff_t size)
+																off_t size)
 {
 	return EROFS;
 }
@@ -386,7 +386,7 @@ error_t netfs_attempt_set_size (struct iouser *cred, struct node *node,
 /* This should attempt to fetch filesystem status information for the remote
    filesystem, for the user CRED. */
 error_t netfs_attempt_statfs (struct iouser *cred, struct node *node,
-			      fsys_statfsbuf_t *st)
+			      struct statfs *st)
 {
 	return EOPNOTSUPP;
 }
@@ -430,7 +430,7 @@ error_t netfs_attempt_readlink (struct iouser *user, struct node *node,
    up to *LEN bytes.  Put the data at DATA.  Set *LEN to the amount
    successfully read upon return.  */
 error_t netfs_attempt_read (struct iouser *cred, struct node *node,
-														loff_t offset, size_t *len, void *data)
+														off_t offset, size_t *len, void *data)
 {
 	error_t err;
 	int remote_fd;
@@ -455,7 +455,7 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
    to *LEN bytes from DATA.  Set *LEN to the amount seccessfully written upon
    return. */
 error_t netfs_attempt_write (struct iouser *cred, struct node *node,
-														 loff_t offset, size_t *len, void *data)
+														 off_t offset, size_t *len, void *data)
 {
 	return EROFS;
 }

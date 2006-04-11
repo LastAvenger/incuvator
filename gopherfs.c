@@ -85,7 +85,9 @@ main (int argc, char **argv)
   if (debug_flag)
     fprintf (stderr, "entering the main loop\n");
   for (;;)
-    fprintf (stderr, "loop\n");
+    if (debug_flag)
+      fprintf (stderr, "loop\n");
+
   netfs_server_loop ();
 
   /*NOT REACHED */

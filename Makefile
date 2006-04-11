@@ -23,7 +23,7 @@ makemode := server
 target = gopherfs
 
 CC = gcc
-CFLAGS = -Wall -g -D_GNU_SOURCE
+CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
 SRCS = gopherfs.c args.c netfs.c gopher.c node.c
 LCLHDRS = gopherfs.h
