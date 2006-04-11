@@ -1,3 +1,18 @@
+2002-04-15  Ben Asseltsine  <ben@asselstine.com>
+
+	* args.c (parse_opt): new option to specify a port.
+	* args.c (parse_opt): setting default port when processing hostname.
+	* args.c: corrected args_doc to reflect parameter order.
+	* netfs.c: changed to use current libnetfs.
+	(netfs_attempt_set_size, netfs_attempt_read, netfs_attempt_write): 
+	    changed from 'off_t' to 'loff_t' in function declaration.
+	(netfs_attempt_statfs): changed from 'struct statfs' to 
+	'fsys_statfsbuf_t' in function declaration. 
+	* gopherfs.c: changed to use current libnetfs.  now setting 
+	    netfs_server_name and netfs_server_version.
+	* gopherfs.c (main): showing "attached to" output only when in 
+	debug mode.
+
 2002-04-15  James A. Morrison  <ja2morri@uwaterloo.ca>
 
 	* node.c (gopherfs_make_netnode): Try to free all allocations on 

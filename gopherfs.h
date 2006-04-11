@@ -30,7 +30,8 @@
 #include <netdb.h>
 
 #include <hurd/hurd_types.h>
-
+#define GOPHER_SERVER_NAME "gopherfs"
+#define GOPHER_SERVER_VERSION "0.1.2"
 /* declaration of global config parapeters */
 extern char *gopherfs_root_server;
 extern unsigned short gopherfs_root_port;

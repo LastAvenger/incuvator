@@ -37,7 +37,8 @@ unsigned short gopherfs_root_port;
 char *gopherfs_server_dir;
 
 int debug_flag;
-
+char *netfs_server_name = GOPHER_SERVER_NAME;
+char *netfs_server_version = GOPHER_SERVER_VERSION;
 struct gopherfs *gopherfs;	/* filesystem global pointer */
 volatile struct mapped_time_value *gopherfs_maptime;
 
@@ -75,7 +76,8 @@ main (int argc, char **argv)
   gopherfs->root =
     gopherfs_make_node (GPHR_DIR, "dir", "", gopherfs_root_server,
 			gopherfs_root_port);
-  fprintf (stderr, "attaching to %s\n", gopherfs_root_server);
+  if (debug_flag)
+    fprintf (stderr, "attaching to %s\n", gopherfs_root_server);
   /* XXX */
   netfs_root_node = gopherfs->root;
   netfs_startup (bootstrap, 0);

@@ -29,12 +29,13 @@
 #include "gopherfs.h"
 
 /* ARGP data */
-const char *argp_program_version = "gopherfs 0.1.2";
+const char *argp_program_version = GOPHER_SERVER_NAME " " GOPHER_SERVER_VERSION;
 const char *argp_program_bug_address = "ja2morri@uwaterloo.ca";
-char args_doc[] = "REMOTE_FS [SERVER]";
+char args_doc[] = "SERVER [REMOTE_FS]";
 char doc[] = "Hurd gopher filesystem translator";
 static const struct argp_option options[] = {
   {"debug", 'D', 0, 0, "enable debug output"},
+  {"port", 'P', "NUMBER", 0, "Specify a non-standard port"},
   {0}
 };
 /* the function that groks the arguments and fills
@@ -43,28 +44,29 @@ static const struct argp_option options[] = {
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
+  char *tail;
   switch (key)
     {
     case 'D':
       debug_flag = 1;
       break;
+    case 'P':
+      gopherfs_root_port = (unsigned short) strtol (arg, &tail, 10);
+      if (tail == arg || gopherfs_root_port > USHRT_MAX)
+        {
+          /* XXX bad integer conversion */
+          error (1, errno, "bad port number");
+        }
+      break;
     case ARGP_KEY_ARG:
       if (state->arg_num == 0)
-	gopherfs_root_server = arg;
+        {
+	  gopherfs_root_port = 70;
+	  gopherfs_root_server = arg;
+        }
       else if (state->arg_num == 1)
 	{
-	  gopherfs_root_port = 70;
 	  gopherfs_server_dir = arg;
-	}
-      else if (state->arg_num == 2)
-	{
-	  char *tail;
-	  gopherfs_root_port = (unsigned short) strtol (arg, &tail, 10);
-	  if (tail == arg || gopherfs_root_port > USHRT_MAX)
-	    {
-	      /* XXX bad integer conversion */
-	      error (1, errno, "bad port number");
-	    }
 	}
       else
 	return ARGP_ERR_UNKNOWN;
