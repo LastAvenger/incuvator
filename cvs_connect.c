@@ -332,6 +332,7 @@ cvs_treat_error(FILE *cvs_handle, char *msg)
 static void 
 cvs_connect_sigalrm_handler(int signal) 
 {
+  (void) signal;
   static time_t cvs_tree_expiration = 0;
 
   /* update directory tree, by default every 1800 sec. */
@@ -367,6 +368,7 @@ cvs_connect_sigalrm_handler(int signal)
 static void
 cvs_connect_sigusr1_handler(int sig) 
 {
+  (void) sig;
   cvs_tree_read(&rootdir);
 }
 
@@ -378,6 +380,7 @@ cvs_connect_sigusr1_handler(int sig)
 static void
 cvs_connect_sigusr2_handler(int sig)
 {
+  (void) sig;
   spin_lock(&cvs_cached_conn_lock);
 
   if(cvs_cached_conn.send)

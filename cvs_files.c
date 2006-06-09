@@ -93,10 +93,10 @@ cvs_files_cvsattr_to_mode_t(const char *ptr)
  */
 #ifdef HAVE_LIBZ
 static int
-cvs_files_gzip_check_header(char **data, int *len)
+cvs_files_gzip_check_header(char **data, uInt *len)
 {
   static const char gzip_magic[2] = {0x1f, 0x8b};
-  int pos = 10;
+  uInt pos = 10;
   int method;
   int flags;
 
@@ -173,7 +173,7 @@ cvs_files_gzip_inflate(FILE *recv, size_t bytes, char **content, size_t *len)
   int got_header = 0;
   
   /* initialize zlib decompression */
-  z.next_in = input;
+  z.next_in = ((Bytef *)input);
   z.avail_in = 0;
   z.next_out = NULL;
   z.zalloc = Z_NULL;
@@ -276,7 +276,7 @@ cvs_files_gzip_inflate(FILE *recv, size_t bytes, char **content, size_t *len)
 
       /* discard inflated bits from the input buffer ... */
       memmove(input, z.next_in, sizeof(input) - ((char *)z.next_in - input));
-      z.next_in = input;
+      z.next_in = ((Bytef *)input);
     }
 
   if(bytes)
