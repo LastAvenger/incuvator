@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # Cross compile a GNU build environment.
-#
+
 # Written by Thomas Schwinge <tschwinge@gnu.org>.
-#
+
 # This script is placed into the public domain; nevertheless, please feel free
 # to send any suggestions, improvements, etc. back to me.
-#
+
 # The files are canonically found at
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.

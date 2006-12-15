@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # Cross compile a GNU build environment.
-#
+
 # Written by Thomas Schwinge <tschwinge@gnu.org>.
-#
+
 # This script is placed into the public domain; nevertheless, please feel free
 # to send any suggestions, improvements, etc. back to me.
-#
+
 # The files are canonically found at
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.
@@ -29,8 +29,8 @@
 #
 # * GNU Binutils
 #   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
-#       co -r binutils-2_16-branch binutils
-#   $ mv src binutils-2_16-branch
+#       co -r binutils-2_17-branch binutils
+#   $ mv src binutils-2_17-branch
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
 #
 # * GNU Compiler Collection
@@ -45,13 +45,13 @@
 #       co -r glibc-2_3-branch glibc
 #   $ mv libc glibc-2_3-branch
 #   (Omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the
-#   glibc-2.4 branch.)
+#   glibc-2.5 branch.)
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/glibc/>.
 #
 # * GNU Hurd
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
 #
-# * GNU Mach
+# * GNU Mach (gnumach-1-branch)
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd \
 #       co -r gnumach-1-branch gnumach
 #   $ mv gnumach gnumach-1-branch
@@ -254,7 +254,7 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
       --with-headers="$SYS_ROOT"/include \
       --disable-profile \
       ${CROSS_GNU_TLS---without-tls} \
-      libc_cv_z_relro=no
+      ${CROSS_GNU_Z_RELRO-libc_cv_z_relro=no}
   fi &&
   if "$MAKE" \
        install_root="$SYS_ROOT" \
@@ -313,7 +313,7 @@ if ./config.status > /dev/null 2>&1; then :; else
     --with-headers="$SYS_ROOT"/include \
     --disable-profile \
     ${CROSS_GNU_TLS---without-tls} \
-    libc_cv_z_relro=no
+    ${CROSS_GNU_Z_RELRO-libc_cv_z_relro=no}
 fi &&
 "$MAKE" \
   install_root="$SYS_ROOT" \
