@@ -1,0 +1,94 @@
+#!/bin/sh
+
+# Cross compile a GNU build environment.
+#
+# Written by Thomas Schwinge <tschwinge@gnu.org>.
+#
+# This script is placed into the public domain; nevertheless, please feel free
+# to send any suggestions, improvements, etc. back to me.
+#
+# The files are canonically found at
+# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
+# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.
+
+
+# Functions from Paul Jarc's prjlibs available at
+# <http://code.dogmap.org/prjlibs/>.
+
+# sh/set.sh
+case $? in 0) :;; *) (exit "$?");; esac &&
+prj_set() {
+  eval "$1=\${2?}"
+}
+
+# sh/set_default.sh
+case $? in 0) :;; *) (exit "$?");; esac &&
+prj_set_default() {
+  : "${2?}" &&
+  eval "
+  if test \"\${$1+x}\" = x; then :; else
+    $1=\$2
+  fi"
+}
+
+# sh/unset.sh
+case $? in 0) :;; *) (exit "$?");; esac &&
+prj_unset() {
+  while test "$#" != 0; do
+    { eval "$1=" &&
+      unset "$1" &&
+      shift
+    } || return "$?"
+  done
+}
+
+# sh/x2.sh
+case $? in 0) :;; *) (exit "$?");; esac &&
+prj_x2() {
+  : "${2?}" &&
+  "$@" &&
+  export "$2"
+}
+
+case $? in 0) :;; *) (exit "$?");; esac &&
+
+
+# Create a clean environment.
+
+prj_x2 prj_set LC_ALL C &&
+prj_unset ASFLAGS CFLAGS CPPFLAGS CXXFLAGS LDFLAGS &&
+prj_unset MAKEFLAGS &&
+
+
+# Environment variables.
+
+# `$ROOT' defaults to `~/tmp/gnu'.
+prj_x2 prj_set_default ROOT ~/tmp/gnu &&
+# `$ROOT' must specify an absolute path.
+case $ROOT in
+  /*)
+    :;;
+  *)
+    ROOT=`cd "$ROOT" && pwd`;;
+esac &&
+
+prj_x2 prj_set_default SYS_ROOT "$ROOT"/sys_root &&
+
+prj_x2 prj_set_default TARGET i586-pc-gnu &&
+
+prj_x2 prj_set_default BINUTILS_SRC "$ROOT"/src/binutils &&
+prj_x2 prj_set_default GCC_SRC "$ROOT"/src/gcc &&
+prj_x2 prj_set_default GLIBC_SRC "$ROOT"/src/glibc &&
+prj_x2 prj_set_default GNUMACH_SRC "$ROOT"/src/gnumach &&
+prj_x2 prj_set_default HURD_SRC "$ROOT"/src/hurd &&
+prj_x2 prj_set_default MIG_SRC "$ROOT"/src/mig &&
+
+# TODO.  See cross-gnu.
+prj_x2 prj_set_default CROSS_GNU_REINSTALL_GLIBC y &&
+
+prj_x2 prj_set PATH "$ROOT"/bin:"$PATH" &&
+
+if gmake --version 2> /dev/null | grep -q GNU
+then prj_x2 prj_set MAKE gmake
+else prj_x2 prj_set MAKE make
+fi

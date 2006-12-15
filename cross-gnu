@@ -1,0 +1,324 @@
+#!/bin/sh
+
+# Cross compile a GNU build environment.
+#
+# Written by Thomas Schwinge <tschwinge@gnu.org>.
+#
+# This script is placed into the public domain; nevertheless, please feel free
+# to send any suggestions, improvements, etc. back to me.
+#
+# The files are canonically found at
+# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
+# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.
+
+# Thanks to
+# * Thadeu Lima de Souza Cascardo for updating the instructions about getting
+#   the source code of GCC using the Subversion repositories.
+
+# Prerequisites:
+#
+# A build environment for the system you're running the script on is required,
+# i.e. a C compiler with the basic libraries and `make'.  You might also need
+# `flex' and `bison'.
+
+# Usage:
+#
+# Place `cross-gnu' and `cross-gnu-env' somewhere in `$PATH', e.g. in `~/bin/'.
+# 
+# Get the source code of the
+#
+# * GNU Binutils
+#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
+#       co -r binutils-2_16-branch binutils
+#   $ mv src binutils-2_16-branch
+#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
+#
+# * GNU Compiler Collection
+#   $ svn co svn://gcc.gnu.org/svn/gcc/branches/BRANCH gcc
+#   $ mv gcc BRANCH
+#   BRANCH is one of `gcc-3_3-branch', `gcc-3_4-branch', `gcc-4_0-branch',
+#   `gcc-4_1-branch' or the tag of a released version like `gcc_3_4_3_release'.
+#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gcc/>.
+#
+# * GNU C Library
+#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/glibc \
+#       co -r glibc-2_3-branch glibc
+#   $ mv libc glibc-2_3-branch
+#   (Omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the
+#   glibc-2.4 branch.)
+#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/glibc/>.
+#
+# * GNU Hurd
+#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
+#
+# * GNU Mach
+#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd \
+#       co -r gnumach-1-branch gnumach
+#   $ mv gnumach gnumach-1-branch
+#
+# * GNU Mach Interface Generator
+#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co mig
+#
+# Unpack the tarballs if you downloaded any.
+#
+# Create a directory where the cross build shall take place and `cd' to that
+# directory.  Create a subdirectory `src' and create symbolic links for every
+# of the above packages: from `src/PACKAGE' to where you stored or unpacked it.
+# If you don't intend to build several cross compilers or use the source trees
+# otherwise, you can also directly store the source trees in `src/'.  The
+# source trees can be shared between multiple cross build trees since the
+# package's build systems are supposed not to modify the files in the source
+# trees.  Not all packages adhere to that, but they fail to do so only for
+# pre-processed documentation, etc., as far as I can tell.
+#
+# Run
+# $ ROOT=. cross-gnu
+# ... to create the cross build environment in the current directory from the
+# sources in `src/'.
+#
+# Later, run
+# $ ROOT=WHERE_THE_ROOT_OF_THE_CROSS_BUILD_TREE_IS; . cross-gnu-env
+# ... to set up `$PATH' (and some other environment variables; have a look at
+# cross-gnu-env), so that you can easily use e.g. the cross compiler running
+# `$TARGET-gcc'.
+
+# Notes:
+#
+# You can re-run `cross-gnu' to rebuild the parts of the sources that have
+# changed since the last run.  This might save a lot of time and is especially
+# useful if you aren't working with unpacked tarballs, but on CVS's branches or
+# want to quickly get a new tool chain with patches you applied to the source
+# trees.
+# I would, however, _not_ recommend to use this technique when doing major
+# changes to the source trees, like switching from gcc-3.3 to gcc-3.4.
+#
+# There are several parts marked with `TODO' in this file; feel free to have a
+# look at these issues and send the outcome back to me.
+#
+# I've successfully been building cross compilers using gcc-3_3-branch and
+# glibc-2_3-branch, gcc-3_4-branch and glibc-2_3-branch, gcc-3_4-branch and the
+# trunk of glibc, gcc-4_0-branch and glibc-2_3-branch, gcc-4_0-branch and the
+# trunk of glibc on GNU/Linux and OpenBSD.
+
+
+# Set up the environment
+
+. cross-gnu-env
+
+case $? in 0) :;; *) (exit "$?");; esac &&
+
+
+# Be verbose.
+
+set -x &&
+
+
+# Create directories
+
+mkdir -p "$ROOT" &&
+cd "$ROOT" &&
+mkdir -p bin "$SYS_ROOT"/{include,lib} "$TARGET" &&
+ln -sfn "$SYS_ROOT"/{include,lib} "$TARGET"/ &&
+
+
+# Install the cross GNU Binutils.
+
+mkdir -p "$BINUTILS_SRC".obj &&
+cd "$BINUTILS_SRC".obj &&
+# We use `config.status's existence as an indicator whether the package was
+# configured already.  (E.g. when running cross-gnu a second time to update the
+# tool chain.)
+if ./config.status --version > /dev/null 2>&1; then :; else
+  "$BINUTILS_SRC"/configure \
+    --target="$TARGET" \
+    --prefix="$ROOT" \
+    --with-sysroot="$SYS_ROOT" \
+    --disable-nls
+fi &&
+"$MAKE" \
+  all \
+  install &&
+
+
+# Install a minimal cross GCC to build a cross MIG and the GNU C Library.
+
+mkdir -p "$GCC_SRC".obj &&
+cd "$GCC_SRC".obj &&
+# Perhaps we already have a complete cross GCC?
+if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
+  if ./config.status > /dev/null 2>&1; then :; else
+    "$GCC_SRC"/configure \
+      --target="$TARGET" \
+      --prefix="$ROOT" \
+      --with-sysroot="$SYS_ROOT" \
+      --disable-nls \
+      --disable-shared \
+      --without-headers \
+      --with-newlib \
+      --enable-languages=c
+  fi &&
+
+# TODO: GCC 3.3 and GCC 3.4 need this for building libgcc.a.  Not needed for
+# GCC 4.0.
+  : > "$SYS_ROOT"/include/signal.h &&
+  mkdir -p "$SYS_ROOT"/include/sys &&
+  : > "$SYS_ROOT"/include/sys/ucontext.h &&
+
+  if "$MAKE" \
+      all-gcc \
+      install-gcc &&
+# TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
+# system wants to link against that library.  A totally empty file is fine for
+# binutils-2.16, but not for binutils-2.15.
+# <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.
+      echo '/* Empty.  */' > "$SYS_ROOT"/lib/libgcc_eh.a
+  then
+    # Remove the bogus files if building the cross compiler succeesded.
+    rm config.status "$SYS_ROOT"/include/{signal.h,sys/ucontext.h}
+  else
+    # That indication file might already have been installed, but we do not yet
+    # have a complete, working cross compiler.
+    rm -f "$ROOT"/bin/"$TARGET"-gcc &&
+    exit 100
+  fi
+fi &&
+
+
+# Install GNU Mach's header files.
+
+mkdir -p "$GNUMACH_SRC".obj &&
+cd "$GNUMACH_SRC".obj &&
+if ./config.status --version > /dev/null 2>&1; then :; else
+  # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
+  # needed either.
+  CC=gcc \
+  "$GNUMACH_SRC"/configure \
+    --host="$TARGET" \
+    --prefix=
+fi &&
+"$MAKE" \
+  prefix="$SYS_ROOT" \
+  no_deps=t \
+  install-headers &&
+
+
+# Install a cross GNU MIG.
+
+mkdir -p "$MIG_SRC".obj &&
+cd "$MIG_SRC".obj &&
+if ./config.status > /dev/null 2>&1; then :; else
+  "$MIG_SRC"/configure \
+    --target="$TARGET" \
+    --prefix="$ROOT"
+fi &&
+"$MAKE" \
+  all \
+  install &&
+
+
+# Install the GNU Hurd's header files.
+
+mkdir -p "$HURD_SRC".obj &&
+cd "$HURD_SRC".obj &&
+if ./config.status --version > /dev/null 2>&1; then :; else
+  # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
+  # needed either.
+  CC=gcc \
+  "$HURD_SRC"/configure \
+    --host="$TARGET" \
+    --prefix= \
+    --disable-profile
+fi &&
+"$MAKE" \
+  prefix="$SYS_ROOT" \
+  no_deps=t \
+  install-headers &&
+
+
+# Install the GNU C Library.
+
+# Do we already have the GNU C library installed?
+if test -h "$SYS_ROOT"/lib/ld.so; then :; else
+  mkdir -p "$GLIBC_SRC".obj &&
+  cd "$GLIBC_SRC".obj &&
+  if ./config.status > /dev/null 2>&1; then :; else
+    # `--build' has to be set to make sure that glibc is cross compiled.
+    # TODO: The build system is forced to think that the linker doesn't support
+    # the `-z relro' flag, because there are unfixed bugs in glibc w.r.t. that
+    # flag.  Likewise for `--without-tls'.
+    "$GLIBC_SRC"/configure \
+      --without-cvs \
+      --build="`"$GLIBC_SRC"/scripts/config.guess`" \
+      --host="$TARGET" \
+      --prefix= \
+      --with-headers="$SYS_ROOT"/include \
+      --disable-profile \
+      ${CROSS_GNU_TLS---without-tls} \
+      libc_cv_z_relro=no
+  fi &&
+  if "$MAKE" \
+       install_root="$SYS_ROOT" \
+       all \
+       install
+  then
+    # TODO: Why doesn't `make install' do that?
+    ln -sf ld.so.1 "$SYS_ROOT"/lib/ld.so &&
+    if [ "$CROSS_GNU_REINSTALL_GLIBC" = n ]; then :; else
+      # Force re-linking files once libgcc_eh is available.  TODO: Is the
+      # following enough?
+      rm -f "$GLIBC_SRC".obj/config.status
+#      rm -rf "$GLIBC_SRC".obj
+    fi
+  else
+    # That indication file might already have been installed, but we do not yet
+    # have a complete, working installation of the GNU C library.
+    rm -f "$SYS_ROOT"/lib/ld.so
+    exit 100
+  fi
+fi &&
+
+
+# Install a complete cross GCC.
+
+cd "$GCC_SRC".obj &&
+if ./config.status > /dev/null 2>&1; then :; else
+  # TODO: At the moment we only configure for creating a C compiler.
+  "$GCC_SRC"/configure \
+    --target="$TARGET" \
+    --prefix="$ROOT" \
+    --with-sysroot="$SYS_ROOT" \
+    --disable-nls \
+    --enable-languages=c
+fi &&
+# Remove the bogus libgcc_eh.
+rm -f "$SYS_ROOT"/lib/libgcc_eh.a &&
+"$MAKE" \
+  all \
+  install &&
+
+
+# Install the GNU C Library.
+mkdir -p "$GLIBC_SRC".obj &&
+cd "$GLIBC_SRC".obj &&
+if ./config.status > /dev/null 2>&1; then :; else
+  # `--build' has to be set to make sure that glibc is cross compiled.
+  # TODO: The build system is forced to think that the linker doesn't support
+  # the `-z relro' flag, because there are unfixed bugs in glibc w.r.t. that
+  # flag.  Likewise for `--without-tls'.
+  "$GLIBC_SRC"/configure \
+    --without-cvs \
+    --build="`"$GLIBC_SRC"/scripts/config.guess`" \
+    --host="$TARGET" \
+    --prefix= \
+    --with-headers="$SYS_ROOT"/include \
+    --disable-profile \
+    ${CROSS_GNU_TLS---without-tls} \
+    libc_cv_z_relro=no
+fi &&
+"$MAKE" \
+  install_root="$SYS_ROOT" \
+  all \
+  install &&
+
+# Success.
+echo "$0"': Everything should be in place now.'
