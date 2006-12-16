@@ -24,43 +24,58 @@
 # Usage:
 #
 # Place `cross-gnu' and `cross-gnu-env' somewhere in `$PATH', e.g. in `~/bin/'.
-# 
+
 # Get the source code of the
-#
+
 # * GNU Binutils
+#
 #   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
 #       co -r binutils-2_17-branch binutils
 #   $ mv src binutils-2_17-branch
-#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
 #
+#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
+
 # * GNU Compiler Collection
+#
 #   $ svn co svn://gcc.gnu.org/svn/gcc/branches/BRANCH gcc
 #   $ mv gcc BRANCH
+#
 #   BRANCH is one of `gcc-3_3-branch', `gcc-3_4-branch', `gcc-4_0-branch',
 #   `gcc-4_1-branch' or the tag of a released version like `gcc_3_4_3_release'.
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gcc/>.
-#
+
 # * GNU C Library
+#
 #   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/glibc \
 #       co -r glibc-2_3-branch glibc
 #   $ mv libc glibc-2_3-branch
+#
 #   (Omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the
-#   glibc-2.5 branch.)
+#   glibc-2.5 branch, but note that building the trunk currently won't work
+#   without heavy patching.)
+#
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/glibc/>.
 #
+#   If you want to use GCC 4.1 or newer, you'll also need to apply the
+#   following patch to glibc:
+#   <http://nic-nac-project.de/~schwinge/tmp/init-first.c_vs._GCC_4.1.patch>.
+
 # * GNU Hurd
-#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
 #
+#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
+
 # * GNU Mach (gnumach-1-branch)
+#
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd \
 #       co -r gnumach-1-branch gnumach
 #   $ mv gnumach gnumach-1-branch
-#
+
 # * GNU Mach Interface Generator
+#
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co mig
-#
+
 # Unpack the tarballs if you downloaded any.
-#
+
 # Create a directory where the cross build shall take place and `cd' to that
 # directory.  Create a subdirectory `src' and create symbolic links for every
 # of the above packages: from `src/PACKAGE' to where you stored or unpacked it.
@@ -70,12 +85,12 @@
 # package's build systems are supposed not to modify the files in the source
 # trees.  Not all packages adhere to that, but they fail to do so only for
 # pre-processed documentation, etc., as far as I can tell.
-#
+
 # Run
 # $ ROOT=. cross-gnu
 # ... to create the cross build environment in the current directory from the
 # sources in `src/'.
-#
+
 # Later, run
 # $ ROOT=WHERE_THE_ROOT_OF_THE_CROSS_BUILD_TREE_IS; . cross-gnu-env
 # ... to set up `$PATH' (and some other environment variables; have a look at
@@ -83,7 +98,7 @@
 # `$TARGET-gcc'.
 
 # Notes:
-#
+
 # You can re-run `cross-gnu' to rebuild the parts of the sources that have
 # changed since the last run.  This might save a lot of time and is especially
 # useful if you aren't working with unpacked tarballs, but on CVS's branches or
@@ -91,17 +106,12 @@
 # trees.
 # I would, however, _not_ recommend to use this technique when doing major
 # changes to the source trees, like switching from gcc-3.3 to gcc-3.4.
-#
+
 # There are several parts marked with `TODO' in this file; feel free to have a
 # look at these issues and send the outcome back to me.
-#
-# I've successfully been building cross compilers using gcc-3_3-branch and
-# glibc-2_3-branch, gcc-3_4-branch and glibc-2_3-branch, gcc-3_4-branch and the
-# trunk of glibc, gcc-4_0-branch and glibc-2_3-branch, gcc-4_0-branch and the
-# trunk of glibc on GNU/Linux and OpenBSD.
 
 
-# Set up the environment
+# Set up the environment.
 
 . cross-gnu-env
 
@@ -113,7 +123,7 @@ case $? in 0) :;; *) (exit "$?");; esac &&
 set -x &&
 
 
-# Create directories
+# Create directories.
 
 mkdir -p "$ROOT" &&
 cd "$ROOT" &&
@@ -125,7 +135,7 @@ ln -sfn "$SYS_ROOT"/{include,lib} "$TARGET"/ &&
 
 mkdir -p "$BINUTILS_SRC".obj &&
 cd "$BINUTILS_SRC".obj &&
-# We use `config.status's existence as an indicator whether the package was
+# We use `config.status''s existence as an indicator whether the package was
 # configured already.  (E.g. when running cross-gnu a second time to update the
 # tool chain.)
 if ./config.status --version > /dev/null 2>&1; then :; else
@@ -243,9 +253,9 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
   cd "$GLIBC_SRC".obj &&
   if ./config.status > /dev/null 2>&1; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
-    # TODO: The build system is forced to think that the linker doesn't support
-    # the `-z relro' flag, because there are unfixed bugs in glibc w.r.t. that
-    # flag.  Likewise for `--without-tls'.
+    # TODO: Unless overridden, the build system is forced to think that the
+    # linker doesn't support the `-z relro' flag, because there are unfixed
+    # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
     "$GLIBC_SRC"/configure \
       --without-cvs \
       --build="`"$GLIBC_SRC"/scripts/config.guess`" \
@@ -302,9 +312,9 @@ mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
 if ./config.status > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
-  # TODO: The build system is forced to think that the linker doesn't support
-  # the `-z relro' flag, because there are unfixed bugs in glibc w.r.t. that
-  # flag.  Likewise for `--without-tls'.
+  # TODO: Unless overridden, the build system is forced to think that the
+  # linker doesn't support the `-z relro' flag, because there are unfixed
+  # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
   "$GLIBC_SRC"/configure \
     --without-cvs \
     --build="`"$GLIBC_SRC"/scripts/config.guess`" \
