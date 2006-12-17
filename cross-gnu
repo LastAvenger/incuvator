@@ -59,6 +59,10 @@
 #   If you want to use GCC 4.1 or newer, you'll also need to apply the
 #   following patch to glibc:
 #   <http://nic-nac-project.de/~schwinge/tmp/init-first.c_vs._GCC_4.1.patch>.
+#
+#   If you use a GNU Make version newer than 3.80, you also need to apply the
+#   following patch to glibc:
+#   <http://sourceware.org/bugzilla/show_bug.cgi?id=2507#c2>.
 
 # * GNU Hurd
 #
