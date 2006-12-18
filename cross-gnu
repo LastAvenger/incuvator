@@ -50,18 +50,19 @@
 #       co -r glibc-2_3-branch glibc
 #   $ mv libc glibc-2_3-branch
 #
-#   (Omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the
-#   glibc-2.5 branch, but note that building the trunk currently won't work
-#   without heavy patching.)
+#   Change `glibc-2_3-branch' to `glibc-2_5-branch' to get the glibc 2.5 branch
+#   or omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the glibc
+#   2.6 branch, but note that building both of them currently won't work
+#   without heavy patching.
 #
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/glibc/>.
 #
 #   If you want to use GCC 4.1 or newer, you'll also need to apply the
-#   following patch to glibc:
+#   following patch, for both glibc-2_3-branch and glibc-2_5-branch:
 #   <http://nic-nac-project.de/~schwinge/tmp/init-first.c_vs._GCC_4.1.patch>.
 #
 #   If you use a GNU Make version newer than 3.80, you also need to apply the
-#   following patch to glibc:
+#   following patch to glibc-2_3-branch:
 #   <http://sourceware.org/bugzilla/show_bug.cgi?id=2507#c2>.
 
 # * GNU Hurd
