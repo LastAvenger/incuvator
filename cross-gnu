@@ -341,6 +341,7 @@ rm -f "$SYS_ROOT"/lib/libgcc_eh.a &&
 
 
 # Install the GNU C Library.
+
 mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
 if ./config.status > /dev/null 2>&1; then :; else
@@ -364,4 +365,5 @@ fi &&
   install &&
 
 # Success.
+
 echo "$0"': Everything should be in place now.'
