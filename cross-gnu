@@ -255,6 +255,11 @@ fi &&
   prefix="$SYS_ROOT" \
   no_deps=t \
   install-headers &&
+# Below, we will reconfigure for allowing to build the pthreads library.
+if grep -q '^CC = gcc$' config.make
+then rm config.status
+else :
+fi &&
 
 
 # Install the GNU C Library.
@@ -298,6 +303,22 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
     exit 100
   fi
 fi &&
+
+
+# Install the GNU Hurd's pthreads library.
+
+cd "$HURD_SRC".obj &&
+if ./config.status --version > /dev/null 2>&1; then :; else
+  "$HURD_SRC"/configure \
+    --host="$TARGET" \
+    --prefix= \
+    --disable-profile
+fi &&
+"$MAKE" \
+  libpthread &&
+"$MAKE" \
+  prefix="$SYS_ROOT" \
+  libihash-install libpthread-install &&
 
 
 # Install a complete cross GCC.
