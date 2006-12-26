@@ -79,6 +79,16 @@
 #
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co mig
 
+# * GNU Debugger, <http://gnu.org/software/gdb/>, `src/gdb'
+#
+#   This is optional and will only be compiled if present.
+#
+#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
+#       co -r gdb_6_6-branch gdb
+#   $ mv src gdb_6_6-branch
+#
+#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gdb/>.
+
 # Unpack the tarballs if you downloaded any.
 
 # Create a directory where the cross build shall take place and `cd' to that
@@ -363,6 +373,43 @@ fi &&
   install_root="$SYS_ROOT" \
   all \
   install &&
+
+
+# Install a cross GDB, if requested.
+
+if test -d "$GDB_SRC"/; then
+  mkdir -p "$GDB_SRC".obj &&
+  cd "$GDB_SRC".obj &&
+  if ./config.status > /dev/null 2>&1; then :; else
+    "$GDB_SRC"/configure \
+      --target="$TARGET" \
+      --prefix="$ROOT" \
+      --with-sysroot="$SYS_ROOT" \
+      --disable-nls
+  fi &&
+  "$MAKE" \
+    all \
+    install &&
+
+
+  # If possible, install a cross compiled `gdbserver' to be ran on the TARGET
+  # system.
+
+  if grep -q '86-\*-gnu\*' "$GDB_SRC"/gdb/gdbserver/README; then
+    mkdir -p gdb/gdbserver &&
+    cd gdb/gdbserver &&
+    if ./config.status > /dev/null 2>&1; then :; else
+      "$GDB_SRC"/gdb/gdbserver/configure \
+        --host="$TARGET" \
+        --prefix="$SYS_ROOT"
+    fi &&
+    "$MAKE" \
+      all \
+      install
+  else :
+  fi
+fi &&
+
 
 # Success.
 

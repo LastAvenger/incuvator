@@ -78,6 +78,7 @@ prj_x2 prj_set_default TARGET i586-pc-gnu &&
 
 prj_x2 prj_set_default BINUTILS_SRC "$ROOT"/src/binutils &&
 prj_x2 prj_set_default GCC_SRC "$ROOT"/src/gcc &&
+prj_x2 prj_set_default GDB_SRC "$ROOT"/src/gdb &&
 prj_x2 prj_set_default GLIBC_SRC "$ROOT"/src/glibc &&
 prj_x2 prj_set_default GNUMACH_SRC "$ROOT"/src/gnumach &&
 prj_x2 prj_set_default HURD_SRC "$ROOT"/src/hurd &&
