@@ -27,7 +27,7 @@
 
 # Get the source code of the
 
-# * GNU Binutils
+# * GNU Binutils, <http://gnu.org/software/binutils/>, `src/binutils'
 #
 #   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
 #       co -r binutils-2_17-branch binutils
@@ -35,7 +35,7 @@
 #
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
 
-# * GNU Compiler Collection
+# * GNU Compiler Collection, <http://gcc.gnu.org/>, `src/gcc'
 #
 #   $ svn co svn://gcc.gnu.org/svn/gcc/branches/BRANCH gcc
 #   $ mv gcc BRANCH
@@ -44,7 +44,7 @@
 #   `gcc-4_1-branch' or the tag of a released version like `gcc_3_4_3_release'.
 #   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gcc/>.
 
-# * GNU C Library
+# * GNU C Library, <http://gnu.org/software/libc/>, `src/glibc'
 #
 #   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/glibc \
 #       co -r glibc-2_3-branch glibc
@@ -65,17 +65,17 @@
 #   following patch to glibc-2_3-branch:
 #   <http://sourceware.org/bugzilla/show_bug.cgi?id=2507#c2>.
 
-# * GNU Hurd
+# * GNU Hurd, <http://hurd.gnu.org/>, `src/hurd'
 #
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
 
-# * GNU Mach (gnumach-1-branch)
+# * GNU Mach (gnumach-1-branch), <http://hurd.gnu.org/>, `src/gnumach'
 #
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd \
 #       co -r gnumach-1-branch gnumach
 #   $ mv gnumach gnumach-1-branch
 
-# * GNU Mach Interface Generator
+# * GNU Mach Interface Generator, <http://hurd.gnu.org/>, `src/mig'
 #
 #   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co mig
 
