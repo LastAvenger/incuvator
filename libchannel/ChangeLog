@@ -1,0 +1,8 @@
+2007-06-28  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* tests/Makefile: New file.  Based on libpthread/tests/Makefile.
+	* tests/test-1.c: New file.
+	* channel.h: New file.  Based on libstore/store.h.
+	* channel.c: New file.  Based on libstore/make.c, libstore/flags.c
+	and libstore/rdwr.c.
+	* Makefile: New file.
