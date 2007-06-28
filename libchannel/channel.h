@@ -1,0 +1,115 @@
+/* Channel I/O
+
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2004, 2005, 2007
+     Free Software Foundation, Inc.
+
+   Written by Miles Bader <miles@gnu.org>
+   Reworked for libchannel by Carl Fredrik Hammar <hammy.lite@gmail.com>
+
+   This file is part of the GNU Hurd.
+
+   The GNU Hurd is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2, or (at
+   your option) any later version.
+
+   The GNU Hurd is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111, USA. */
+
+#ifndef __CHANNEL_H__
+#define __CHANNEL_H__
+
+#include <mach.h>
+#include <hurd/hurd_types.h>
+
+struct channel
+{
+  int flags;
+  const struct channel_class *class;
+  void *hook;
+};
+
+/* Channel flags.  These are in addition to the CHANNEL_ flags defined
+   in <hurd/hurd_types.h>.  XXX There are no such flags at the moment.  */
+
+/* Flags for immutable properties of the channel.  */
+#define CHANNEL_IMMUTABLE_FLAGS	0x00FF
+
+/* Flags implemented by generic channel code.  */
+#define CHANNEL_READONLY   0x0100 /* No writing allowed. */
+#define CHANNEL_WRITEONLY  0x0200 /* No reading allowed. */
+#define CHANNEL_GENERIC_FLAGS (CHANNEL_READONLY | CHANNEL_WRITEONLY)
+
+/* Flags implemented by each backend.  */
+#define CHANNEL_HARD_READONLY     0x1000  /* Can't be made
+					     writable.  */
+#define CHANNEL_HARD_WRITEONLY    0x2000  /* Can't be made
+					     readable.  */
+#define CHANNEL_INACTIVE	  0x4000  /* Not in a usable
+					     state.  */
+#define CHANNEL_INNOCUOUS	  0x8000  /* Cannot modify anything
+					     dangerous. */
+#define CHANNEL_BACKEND_SPEC_BASE 0x10000 /* Here up are
+					     backend-specific */
+#define CHANNEL_BACKEND_FLAGS	(CHANNEL_HARD_READONLY			\
+				 | CHANNEL_INACTIVE			\
+				 | ~(CHANNEL_BACKEND_SPEC_BASE - 1))
+
+typedef error_t (*channel_read_meth_t) (struct channel *channel,
+					mach_msg_type_number_t amount,
+					void **buf, mach_msg_type_number_t *len);
+typedef error_t (*channel_write_meth_t) (struct channel *channel,
+					 const void *buf,
+					 mach_msg_type_number_t len,
+					 mach_msg_type_number_t *amount);
+
+struct channel_class
+{
+  /* Name of the class.  */
+  const char *name;
+
+  /* Read up to AMOUNT bytes from the channel into BUF and LEN.  */
+  channel_read_meth_t read;
+  /* Write up to LEN bytes from BUF to the channel.  Set AMOUNT to the
+     actual amount of bytes written.  */
+  channel_write_meth_t write;
+ 
+  /* Modify flags that reflect backend state, such as
+     CHANNEL_HARD_READONLY.  */
+  error_t (*set_flags) (struct channel *channel, int flags);
+  error_t (*clear_flags) (struct channel *channel, int flags);
+
+  /* Called just before deallocating CHANNEL.  */
+  void (*cleanup) (struct channel *channel);
+};
+
+/* Allocate a new channel structure with it's fields initialized to
+   the respective given parameters.  */
+error_t channel_create (const struct channel_class *class,
+			int flags, struct channel **channel);
+
+void channel_free (struct channel *channel);
+
+/* Add FLAGS to CHANNEL's currently set flags.  */
+error_t channel_set_flags (struct channel *channel, int flags);
+
+/* Remove FLAGS from CHANNEL's currently set flags.  */
+error_t channel_clear_flags (struct channel *channel, int flags);
+
+/* Write LEN bytes from BUF to CHANNEL.  Return the amount written in
+   AMOUNT.  */
+error_t channel_write (struct channel *channel, const void *buf,
+		       size_t len, size_t *amount);
+
+/* Read AMOUNT bytes from CHANNEL into BUF and LEN (using mach buffer
+   return semantics).  */
+error_t channel_read (struct channel *channel, size_t amount,
+		      void **buf, size_t *len);
+
+#endif /* __CHANNEL_H__ */
