@@ -1,6 +1,6 @@
 /*
-  Copyright (C) 1997, 2002, 2004 Free Software Foundation, Inc.
-  Copyright (C) 2004 Giuseppe Scrivano.
+  Copyright (C) 1997, 2002, 2004, 2007 Free Software Foundation, Inc.
+  Copyright (C) 2004, 2007 Giuseppe Scrivano.
   Written by Giuseppe Scrivano <gscrivano@gnu.org>
 
   This program is free software; you can redistribute it and/or
@@ -14,8 +14,7 @@
   General Public License for more details.
   
   You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "smb.h"

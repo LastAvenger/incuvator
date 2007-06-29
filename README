@@ -11,4 +11,3 @@ To get libsmbclient compiled under GNU/Hurd do the following:
 
 To run the translator use the settrans command under GNU/Hurd.
 settrans -c /src/smbfs/share/  /src/smbfs/smbfs -sSERVER_NAME  -rSHARED_RESOURCE  -wWORKGROUP -uUSERNAME -pPASSWORD
-
