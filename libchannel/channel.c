@@ -26,8 +26,9 @@
 
 #include "channel.h"
 
-/* Allocate a new channel structure with each fields initialized to
-   the respective given parameter.  */
+/* Allocate a new channel of class CLASS, with FLAGS set (using
+   channel_set_flags,) that is returned in CHANNEL.  Return ENOMEM if
+   memory for channel couldn't be allocated.  */
 error_t
 channel_create (const struct channel_class *class,
 		int flags, struct channel **channel)
@@ -44,6 +45,9 @@ channel_create (const struct channel_class *class,
   return 0;
 }
 
+/* If not null call method cleanup to deallocate class-specific bits of
+   CHANNEL, then free it (regardless) and any generic resources used by
+   it.  */
 void
 channel_free (struct channel *channel)
 {
@@ -53,7 +57,9 @@ channel_free (struct channel *channel)
   free (channel);
 }
 
-/* Add FLAGS to CHANNEL's currently set flags.  */
+/* Set the flags FLAGS in CHANNEL.  Remove any already set flags in FLAGS,
+   if FLAGS contain any backend flags call set_flags method or if
+   set_flags is null return EINVAL.  Lastly generic flags get set.  */
 error_t
 channel_set_flags (struct channel *channel, int flags)
 {
@@ -74,7 +80,10 @@ channel_set_flags (struct channel *channel, int flags)
   return err;
 }
 
-/* Remove FLAGS from CHANNEL's currently set flags.  */
+/* Clear the flags FLAGS in CHANNEL.  Remove any already cleared flags in
+   FLAGS, if FLAGS contain any backend flags call clear_flags method or if
+   clear_flags is null return EINVAL.  Lastly generic flags get
+   cleared.  */
 error_t
 channel_clear_flags (struct channel *channel, int flags)
 {
@@ -95,23 +104,29 @@ channel_clear_flags (struct channel *channel, int flags)
   return err;
 }
 
-/* Write LEN bytes from BUF to CHANNEL.  Return the amount written in
-   AMOUNT.  */
+/* Reads at most AMOUNT bytes from CHANNEL into BUF and LEN with the usual
+   return buf semantics.  Block until data is available and return 0 bytes
+   on EOF.  If channel is write-only return EPERM, otherwise forward call
+   to CHANNEL's read method.  */
+error_t
+channel_read (struct channel *channel, size_t amount,
+	      void **buf, size_t *len)
+{
+  if (channel->flags & CHANNEL_WRITEONLY)
+    return EPERM;
+
+  return (*channel->class->read) (channel, amount, buf, len);
+}
+
+/* Write LEN bytes of BUF to CHANNEL, AMOUNT is set to the amount actually
+   witten.  Block until data can be written.  If channel is read-only
+   return EPERM, otherwise forward call to CHANNEL's write method.  */
 error_t
 channel_write (struct channel *channel, const void *buf,
 	       size_t len, size_t *amount)
 {
   if (channel->flags & CHANNEL_READONLY)
-    return EROFS;
+    return EPERM;
 
   return (*channel->class->write) (channel, buf, len, amount);
-}
-
-/* Read AMOUNT bytes from CHANNEL into BUF and LEN (using mach buffer
-   return semantics).  */
-error_t
-channel_read (struct channel *channel, size_t amount,
-	      void **buf, size_t *len)
-{
-  return (*channel->class->read) (channel, amount, buf, len);
 }
