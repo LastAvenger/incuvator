@@ -34,82 +34,84 @@ struct channel
   const struct channel_class *class;
   void *hook;
 };
-
-/* Channel flags.  These are in addition to the CHANNEL_ flags defined
-   in <hurd/hurd_types.h>.  XXX There are no such flags at the moment.  */
-
-/* Flags for immutable properties of the channel.  */
-#define CHANNEL_IMMUTABLE_FLAGS	0x00FF
-
+
 /* Flags implemented by generic channel code.  */
-#define CHANNEL_READONLY   0x0100 /* No writing allowed. */
-#define CHANNEL_WRITEONLY  0x0200 /* No reading allowed. */
+#define CHANNEL_READONLY   0x1 /* No writing allowed. */
+#define CHANNEL_WRITEONLY  0x2 /* No reading allowed. */
 #define CHANNEL_GENERIC_FLAGS (CHANNEL_READONLY | CHANNEL_WRITEONLY)
 
 /* Flags implemented by each backend.  */
-#define CHANNEL_HARD_READONLY     0x1000  /* Can't be made
-					     writable.  */
-#define CHANNEL_HARD_WRITEONLY    0x2000  /* Can't be made
-					     readable.  */
-#define CHANNEL_INACTIVE	  0x4000  /* Not in a usable
-					     state.  */
-#define CHANNEL_INNOCUOUS	  0x8000  /* Cannot modify anything
-					     dangerous. */
-#define CHANNEL_BACKEND_SPEC_BASE 0x10000 /* Here up are
-					     backend-specific */
+#define CHANNEL_HARD_READONLY     0x010 /* Can't be made writable.  */
+#define CHANNEL_HARD_WRITEONLY    0x020 /* Can't be made readable.  */
+
+#define CHANNEL_BACKEND_SPEC_BASE 0x100 /* Here up are backend-specific */
 #define CHANNEL_BACKEND_FLAGS	(CHANNEL_HARD_READONLY			\
-				 | CHANNEL_INACTIVE			\
+				 | CHANNEL_HARD_WRITEONLY
 				 | ~(CHANNEL_BACKEND_SPEC_BASE - 1))
 
-typedef error_t (*channel_read_meth_t) (struct channel *channel,
-					mach_msg_type_number_t amount,
-					void **buf, mach_msg_type_number_t *len);
-typedef error_t (*channel_write_meth_t) (struct channel *channel,
-					 const void *buf,
-					 mach_msg_type_number_t len,
-					 mach_msg_type_number_t *amount);
-
 struct channel_class
 {
   /* Name of the class.  */
   const char *name;
 
-  /* Read up to AMOUNT bytes from the channel into BUF and LEN.  */
-  channel_read_meth_t read;
-  /* Write up to LEN bytes from BUF to the channel.  Set AMOUNT to the
-     actual amount of bytes written.  */
-  channel_write_meth_t write;
+  /* Read at most AMOUNT bytes from CHANNEL into BUF and LEN with the
+     usual return buf semantics.  Blocks until data is available or return
+     0 bytes on EOF.  May not be null.  See channel_read.  */
+  error_t (*read) (struct channel *channel,
+		   size_t amount, void **buf, size_t *len);
+
+  /* Write LEN bytes from BUF to CHANNEL, AMOUNT is set to the amount
+     actually witten.  Should block until data can be written.  May not be
+     null.  See channel_write.  */
+  error_t (*write) (struct channel *channel,
+		    const void *buf, size_t len, size_t *amount);
  
-  /* Modify flags that reflect backend state, such as
-     CHANNEL_HARD_READONLY.  */
+  /* Set any backend handled flags in CHANNEL specified in FLAGS.  May be
+     null.  See channel_set_flags.  */
   error_t (*set_flags) (struct channel *channel, int flags);
+
+  /* Clear any backend handled flags in CHANNEL specified in FLAGS.  May
+     be null.  See channel_clear_flags.  */
   error_t (*clear_flags) (struct channel *channel, int flags);
 
-  /* Called just before deallocating CHANNEL.  */
+  /* Free any class-specific resources allocated for CHANNEL.  May be
+     null. */
   void (*cleanup) (struct channel *channel);
 };
 
-/* Allocate a new channel structure with it's fields initialized to
-   the respective given parameters.  */
+/* Allocate a new channel of class CLASS, with FLAGS set (using
+   channel_set_flags,) that is returned in CHANNEL.  Return ENOMEM if
+   memory for channel couldn't be allocated.  */
 error_t channel_create (const struct channel_class *class,
 			int flags, struct channel **channel);
 
+/* If not null call method cleanup to deallocate class-specific bits of
+   CHANNEL, then free it (regardless) and any generic resources used by
+   it.  */
 void channel_free (struct channel *channel);
 
-/* Add FLAGS to CHANNEL's currently set flags.  */
+/* Set the flags FLAGS in CHANNEL.  Remove any already set flags in FLAGS,
+   if FLAGS contain any backend flags call set_flags method or if
+   set_flags is null return EINVAL.  Lastly generic flags get set.  */
 error_t channel_set_flags (struct channel *channel, int flags);
 
-/* Remove FLAGS from CHANNEL's currently set flags.  */
+/* Clear the flags FLAGS in CHANNEL.  Remove any already cleared flags in
+   FLAGS, if FLAGS contain any backend flags call clear_flags method or if
+   clear_flags is null return EINVAL.  Lastly generic flags get
+   cleared.  */
 error_t channel_clear_flags (struct channel *channel, int flags);
 
-/* Write LEN bytes from BUF to CHANNEL.  Return the amount written in
-   AMOUNT.  */
-error_t channel_write (struct channel *channel, const void *buf,
-		       size_t len, size_t *amount);
-
-/* Read AMOUNT bytes from CHANNEL into BUF and LEN (using mach buffer
-   return semantics).  */
+/* Reads at most AMOUNT bytes from CHANNEL into BUF and LEN with the usual
+   return buf semantics.  Block until data is available and return 0 bytes
+   on EOF.  If channel is write-only return EPERM, otherwise forward call
+   to CHANNEL's read method.  */
 error_t channel_read (struct channel *channel, size_t amount,
 		      void **buf, size_t *len);
+
+/* Write LEN bytes of BUF to CHANNEL, AMOUNT is set to the amount actually
+   witten.  Block until data can be written.  If channel is read-only
+   return EPERM, otherwise forward call to CHANNEL's write method.  */
+error_t channel_write (struct channel *channel, const void *buf,
+		       size_t len, size_t *amount);
 
 #endif /* __CHANNEL_H__ */
