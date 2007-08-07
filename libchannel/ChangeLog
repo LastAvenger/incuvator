@@ -1,3 +1,35 @@
+2007-08-07  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* channel.c (channel_create): Initialize hook.
+	(channel_create): Fix comment.
+
+	* channel.h (channel_create): Fix comment.
+
+2007-07-18  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* channel.c (channel_create channel_free): Improve comments.
+	(channel_set_flags, channel_clear_flags): Improve comments.
+	(channel_read, channel_write): Improve comments.
+	(channel_read, channel_write): Swap place in file.
+	(channel_read): Check if channel is write-only.
+	(channel_write): Return EPERM if channel is read-only.
+
+	* channel.h: Remove inacurate inductory flag comment.
+	(CHANNEL_IMMUTABLE_FLAGS, CHANNEL_INACTIVE): Remove.
+	(CHANNEL_INNOCUOUS): Remove.
+	(CHANNEL_READONLY, CHANNEL_WRITEONLY): Bump down value.
+	(CHANNEL_HARD_READONLY, CHANNEL_HARD_WRITEONLY): Bump down value.
+	(CHANNEL_BACKEND_SPEC_BASE): Bump down value.
+	(CHANNEL_BACKEND_FLAGS): Add CHANNEL_HARD_WRITEONLY.  Remove
+	CHANNEL_INACTIVE.
+	(struct channel_class): Inline type of read and write.  Improve
+	comments of read, write, set_flags, clear_flags and cleanup.
+	(channel_read_meth_t, channel_write_meth_t): Remove.
+	(channel_create channel_free): Improve comments.
+	(channel_set_flags, channel_clear_flags): Improve comments.
+	(channel_read, channel_write): Improve comments.
+	(channel_read, channel_write): Swap place in file.
+
 2007-06-28  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 
 	* tests/Makefile: New file.  Based on libpthread/tests/Makefile.
