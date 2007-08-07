@@ -79,9 +79,9 @@ struct channel_class
   void (*cleanup) (struct channel *channel);
 };
 
-/* Allocate a new channel of class CLASS, with FLAGS set (using
-   channel_set_flags,) that is returned in CHANNEL.  Return ENOMEM if
-   memory for channel couldn't be allocated.  */
+/* Allocate a new channel of class CLASS, with FLAGS set and return it
+   in CHANNEL.  Return ENOMEM if memory for channel couldn't be
+   allocated.  */
 error_t channel_create (const struct channel_class *class,
 			int flags, struct channel **channel);
 
