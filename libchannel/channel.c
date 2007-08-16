@@ -1,4 +1,4 @@
-/* Channel I/O
+/* Generic channel functions.
 
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2003, 2007
      Free Software Foundation, Inc.
@@ -26,36 +26,57 @@
 
 #include "channel.h"
 
-/* Allocate a new channel of class CLASS, with FLAGS set and return it
-   in CHANNEL.  Return ENOMEM if memory for channel couldn't be
-   allocated.  */
+/* Allocate a new channel of hub HUB, with FLAGS set, then return it in
+   CHANNEL.  Return ENOMEM if memory for the hub couldn't be allocated.  */
 error_t
-channel_create (const struct channel_class *class,
-		int flags, struct channel **channel)
+channel_alloc (struct channel_hub *hub, int flags,
+               struct channel **channel)
 {
   struct channel *new = malloc (sizeof (struct channel));
   if (!new)
     return ENOMEM;
 
   new->flags = flags;
-  new->class = class;
-  new->hook = 0;
+  new->hub = hub;
+  new->class_hook = 0;
 
   *channel = new;
 
   return 0;
 }
 
-/* If not null call method cleanup to deallocate class-specific bits of
-   CHANNEL, then free it (regardless) and any generic resources used by
-   it.  */
+/* Free CHANNEL and any generic resources allocated for it.  */
 void
 channel_free (struct channel *channel)
 {
-  if (channel->class->cleanup)
-    (*channel->class->cleanup) (channel);
-
   free (channel);
+}
+
+/* Allocate a new channel, open it, and return it in CHANNEL.  Uses
+   HUB's open method and passes FLAGS to it, unless it's null.  */
+error_t
+channel_open (struct channel_hub *hub, int flags,
+	      struct channel **channel)
+{
+  error_t err = channel_alloc (hub, flags, channel);
+  if (err)
+    return err;
+
+  if (hub->class->open)
+    err = (*hub->class->open) (*channel, flags);
+
+  return err;
+}
+
+/* Call CHANNEL's close method, unless it's null, then free it
+   (regardless.)  */
+void
+channel_close (struct channel *channel)
+{
+  if (channel->hub->class->close)
+    (*channel->hub->class->close) (channel);
+
+  channel_free (channel);
 }
 
 /* Set the flags FLAGS in CHANNEL.  Remove any already set flags in FLAGS,
@@ -69,8 +90,8 @@ channel_set_flags (struct channel *channel, int flags)
 
   if (new & CHANNEL_BACKEND_FLAGS)
     {
-      if (channel->class->set_flags)
-	err = (*channel->class->set_flags) (channel, new);
+      if (channel->hub->class->set_flags)
+	err = (*channel->hub->class->set_flags) (channel, new);
       else
 	err = EINVAL;
     }
@@ -93,8 +114,8 @@ channel_clear_flags (struct channel *channel, int flags)
 
   if (kill & CHANNEL_BACKEND_FLAGS)
     {
-      if (channel->class->clear_flags)
-	err = (*channel->class->clear_flags) (channel, kill);
+      if (channel->hub->class->clear_flags)
+	err = (*channel->hub->class->clear_flags) (channel, kill);
       else
 	err = EINVAL;
     }
@@ -116,7 +137,7 @@ channel_read (struct channel *channel, size_t amount,
   if (channel->flags & CHANNEL_WRITEONLY)
     return EPERM;
 
-  return (*channel->class->read) (channel, amount, buf, len);
+  return (*channel->hub->class->read) (channel, amount, buf, len);
 }
 
 /* Write LEN bytes of BUF to CHANNEL, AMOUNT is set to the amount actually
@@ -129,5 +150,5 @@ channel_write (struct channel *channel, const void *buf,
   if (channel->flags & CHANNEL_READONLY)
     return EPERM;
 
-  return (*channel->class->write) (channel, buf, len, amount);
+  return (*channel->hub->class->write) (channel, buf, len, amount);
 }

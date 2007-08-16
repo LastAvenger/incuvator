@@ -26,7 +26,7 @@ makemode := library
 libname := libchannel
 installhdrs := channel.h
 
-SRCS = channel.c
+SRCS = channel.c hub.c
 LCLHDRS := channel.h
 
 OBJS = $(SRCS:.c=.o)

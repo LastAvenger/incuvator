@@ -1,9 +1,58 @@
+2007-08-16  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* tests/test-1.c (triv_fifo_open): New function.
+	(triv_fifo_cleanup): Rename to triv_fifo_close.
+	(triv_fifo_create): Remove.
+	(triv_fifo_create_hub) New function.
+	(triv_fifo_read): Use class_hook instead of hook.
+	(triv_fifo_write): Likewise.
+	(main): Create triv_fifo hub.
+	(main): Open triv_fifo channel.
+	(main): Close triv_fifo channel.
+	(triv_fifo_class): Set name.
+	(triv_fifo_class): Set open and close methods.
+
+	* Makefile (SRCS): Add hub.c
+
+	* hub.c: New file.
+
+	* channel.c (channel_create): Rename to channel_alloc.
+	(channel_alloc): Remove class parameter.
+	(channel_alloc): Add hub parameter.
+	(channel_alloc): Use class_hook instead of hook.
+	(channel_free): Don't call cleanup method.
+	(channel_open): New function.
+	(channel_close): New function.
+	(channel_set_flags): Get class through hub.
+	(channel_clear_flags): Likewise.
+	(channel_read): Likewise.
+	(channel_write): Likewise.
+
+	* channel.h: Merge channel and channel_class page.
+	: Merge channel function pages into single page.
+	(struct channel): Remove field class.
+	(struct channel): New field hub.
+	(struct channel): Rename hook to class_hook.
+	(struct channel_hub): New struct.
+	(struct channel_class): Rename method cleanup to close.
+	(struct channel_class): Fix close comment.
+	(struct channel_class): New methods open, close, set_hub_flags,
+	clear_hub_flags, clear_hub.
+	(channel_create): Rename to channel_alloc.
+	(channel_alloc): Remove class parameter.
+	(channel_alloc): Add hub parameter.
+	(channel_free): Fix comment.
+	(channel_open, channel_close): New functions.
+	(channel_alloc_hub, channel_free_hub): New functions.
+	(channel_set_hub_flags, channel_clear_hub_flags): Likewise.
+
 2007-08-07  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 
 	* channel.c (channel_create): Initialize hook.
 	(channel_create): Fix comment.
 
 	* channel.h (channel_create): Fix comment.
+
 
 2007-07-18  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 

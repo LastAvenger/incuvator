@@ -56,7 +56,7 @@ triv_fifo_read (struct channel *channel,
 		mach_msg_type_number_t amount,
 		void **buf, mach_msg_type_number_t *len)
 {
-  struct buf *fifo_buf = channel->hook;
+  struct buf *fifo_buf = channel->class_hook;
   int n = MIN (amount, fifo_buf->len);
   size_t new_len = fifo_buf->len - n;
   int alloced = 0;
@@ -90,7 +90,7 @@ triv_fifo_write (struct channel *channel,
 		 const void *buf, mach_msg_type_number_t len,
 		 mach_msg_type_number_t *amount)
 {
-  struct buf *fifo_buf = channel->hook;
+  struct buf *fifo_buf = channel->class_hook;
   size_t old_len = fifo_buf->len;
   size_t new_len = old_len + len;
   error_t err;
@@ -105,39 +105,43 @@ triv_fifo_write (struct channel *channel,
   return 0;
 }
 
-static void
-triv_fifo_cleanup (struct channel *fifo)
+static error_t
+triv_fifo_open (struct channel *channel, int flags)
 {
-  free (fifo->hook);
+  struct buf *buf;
+
+  buf = malloc (sizeof (struct buf));
+  if (! buf)
+      return ENOMEM;
+
+  buf->len = 0;
+
+  channel->class_hook = buf;
+  return 0;
+}
+
+static void
+triv_fifo_close (struct channel *fifo)
+{
+  free (fifo->class_hook);
 }
 
 const struct channel_class triv_fifo_class =
 {
-  "", triv_fifo_read, triv_fifo_write, 0, 0, triv_fifo_cleanup
+  .name = "triv_fifo",
+
+  .open = triv_fifo_open,
+  .close = triv_fifo_close,
+
+  .read = triv_fifo_read,
+  .write = triv_fifo_write
 };
 
+
 error_t
-triv_fifo_create (int flags, struct channel **channel)
+triv_fifo_create_hub (int flags, struct channel_hub **hub)
 {
-  error_t err;
-  struct buf *buf;
-
-  err = channel_create (&triv_fifo_class, flags | CHANNEL_INNOCUOUS,
-			channel);
-  if (err)
-    return err;
-
-  buf = malloc (sizeof (struct buf));
-  if (!buf)
-    {
-      channel_free (*channel);
-      return ENOMEM;
-    }
-
-  buf->len = 0;
-
-  (*channel)->hook = buf;
-  return 0;
+  return channel_alloc_hub (&triv_fifo_class, flags, hub);
 }
 
 static error_t
@@ -184,6 +188,7 @@ do_writes (struct channel *fifo, void *buf, size_t len, size_t step)
 int
 main (int argc, char **argv)
 {
+  struct channel_hub *fifo_hub;
   struct channel *fifo;
   void *data, *buf;
   size_t len = 128 * 1024;
@@ -194,9 +199,13 @@ main (int argc, char **argv)
   if (data == MAP_FAILED)
     error (1, errno, "main");
 
-  err = triv_fifo_create (0, &fifo);
+  err = triv_fifo_create_hub (0, &fifo_hub);
   if (err)
-    error (1, err, "triv_fifo_create");
+    error (1, err, "triv_fifo_create_hub");
+
+  err = channel_open (fifo_hub, 0, &fifo);
+  if (err)
+    error (1, err, "triv_fifo_open");
 
   /* Fill test data.  */
   for (i = 0; i < len; i++)
@@ -228,6 +237,9 @@ main (int argc, char **argv)
 
   if (memcmp (data, buf, len) != 0)
     error (1, 0, "written data inconsistent with read data");
-    
+
+  channel_close (fifo);
+  channel_free_hub (fifo_hub);
+
   return 0;
 }
