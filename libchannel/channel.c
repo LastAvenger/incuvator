@@ -39,6 +39,7 @@ channel_alloc (struct channel_hub *hub, int flags,
   new->flags = flags;
   new->hub = hub;
   new->class_hook = 0;
+  new->user_hook = 0;
 
   *channel = new;
 
@@ -151,4 +152,15 @@ channel_write (struct channel *channel, const void *buf,
     return EPERM;
 
   return (*channel->hub->class->write) (channel, buf, len, amount);
+}
+
+/* Write out any pending data held by CHANNEL in buffers, by forwarding
+   call to flush method, unless it's null.  */
+error_t
+channel_flush (struct channel *channel)
+{
+  if (channel->hub->class->flush)
+    return (*channel->hub->class->flush) (channel);
+  else
+    return 0;
 }

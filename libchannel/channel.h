@@ -25,6 +25,7 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
+#include <cthreads.h>
 #include <mach.h>
 #include <hurd/hurd_types.h>
 
@@ -32,14 +33,22 @@ struct channel
 {
   int flags;
   struct channel_hub *hub;
-  void *class_hook;
+
+  /* These hooks are not touched by libchannel.  */
+  void *class_hook; /* For class' use.  */
+  void *user_hook;  /* For user's use.  */
 };
 
 struct channel_hub
 {
+   /* Should be held when before access to fields of this hub or call to
+      any function operating on it.  */
+  struct mutex lock;
+
   int flags;
   const struct channel_class *class;
-  void *hook; /* For class use.  */
+
+  void *hook; /* For class' use.  */
 };
 
 struct channel_class
@@ -59,6 +68,11 @@ struct channel_class
   error_t (*write) (struct channel *channel,
 		    const void *buf, size_t len, size_t *amount);
  
+  /* Write out any pending data held by CHANNEL for buffering purposes.
+     It should *not* flush data held to implement specific behavior.  May
+     be null.  See channel_flush.  */
+  error_t (*flush) (struct channel *channel);
+
   /* Set any backend handled flags in CHANNEL specified in FLAGS.  May be
      null.  See channel_set_flags.  */
   error_t (*set_flags) (struct channel *channel, int flags);
@@ -90,7 +104,11 @@ struct channel_class
 /* Flags implemented by generic channel code.  */
 #define CHANNEL_READONLY   0x1 /* No writing allowed. */
 #define CHANNEL_WRITEONLY  0x2 /* No reading allowed. */
-#define CHANNEL_GENERIC_FLAGS (CHANNEL_READONLY | CHANNEL_WRITEONLY)
+#define CHANNEL_NO_FILEIO  0x3 /* Don't consider file io as an option.  */
+#define CHANNEL_ENFORCED   0x4 /* Don't transfer hubs over IPC.  */
+
+#define CHANNEL_GENERIC_FLAGS (CHANNEL_READONLY | CHANNEL_WRITEONLY	\
+			       | CHANNEL_NO_FILEIO | CHANNEL_ENFORCED)
 
 /* Flags implemented by each backend.  */
 #define CHANNEL_HARD_READONLY     0x010 /* Can't be made writable.  */
@@ -141,6 +159,10 @@ error_t channel_read (struct channel *channel, size_t amount,
    return EPERM, otherwise forward call to CHANNEL's write method.  */
 error_t channel_write (struct channel *channel, const void *buf,
 		       size_t len, size_t *amount);
+
+/* Write out any pending data held by CHANNEL in buffers, by forwarding
+   call to flush method, unless it's null.  */
+error_t channel_flush (struct channel *channel);
 
 /* Allocate a new hub of CLASS with FLAGS set, then return it in HUB.
    Return ENOMEM if memory for the hub couldn't be allocated.  */

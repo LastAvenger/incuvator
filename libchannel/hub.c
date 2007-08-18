@@ -34,6 +34,7 @@ channel_alloc_hub (const struct channel_class *class, int flags,
   if (! new_hub)
     return ENOMEM;
 
+  mutex_init (&new_hub->lock);
   new_hub->class = class;
   new_hub->flags = flags;
   new_hub->hook = 0;
@@ -51,6 +52,7 @@ channel_free_hub (struct channel_hub *hub)
   if (hub->class->clear_hub)
     (*hub->class->clear_hub) (hub);
 
+  mutex_clear (&hub->lock);
   free (hub);
 }
 

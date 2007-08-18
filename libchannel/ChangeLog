@@ -1,3 +1,23 @@
+2007-08-18  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* hub.c (channel_alloc_hub): Initialize `lock'.
+	(channel_free_hub): Clear `lock'.
+
+	* channel.c (channel_alloc): Zero `user_hook'.
+	* channel.c (channel_flush): New function `channel_flush'.
+
+	* channel.h: Include `cthreads.h'.
+	(struct channel): New field `class_hook'.
+	(struct channel): Add comments for hooks.
+	(struct channel_hub): New field `lock'.
+	(struct channel_hub): Fixed comment for `hook'.
+	(struct channel_class): New method `flush'.
+	(CHANNEL_NO_FILEIO): New flag.
+	(CHANNEL_ENFORCED): New flag.
+	(CHANNEL_GENERIC_FLAGS): Add `CHANNEL_NO_FILEIO' and
+	`CHANNEL_ENFORCED'.
+	(channel_flush): New function `channel_flush'.
+
 2007-08-16  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 
 	* tests/test-1.c (triv_fifo_open): New function.

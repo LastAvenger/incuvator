@@ -24,6 +24,7 @@ dir := libchannel
 makemode := library
 
 libname := libchannel
+HURDLIBS = threads
 installhdrs := channel.h
 
 SRCS = channel.c hub.c
