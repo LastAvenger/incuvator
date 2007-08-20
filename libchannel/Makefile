@@ -1,8 +1,10 @@
 # Makefile for libchannel
 #
-#   Copyright (C) 2007 Free Software Foundation, Inc.
-# 
-#   Written by Carl Fredrik Hammar <hammy.lite@gmail.com>
+#   Copyright (C) 1995, 1996, 1997, 2001, 2002, 2007
+#     Free Software Foundation, Inc.
+#
+#   Written by Miles Bader <miles@gnu.org>
+#   Reworked for libchannel by Carl Fredrik Hammar <hammy.lite@gmail.com>
 #
 #   This file is part of the GNU Hurd.
 #
@@ -23,13 +25,44 @@
 dir := libchannel
 makemode := library
 
-libname := libchannel
-HURDLIBS = threads
-installhdrs := channel.h
+libname = libchannel
+SRCS = channel.c hub.c argp.c control.c fetch.c kids.c file.c module.c \
+       query.c typed.c $(channel-types:=.c)
 
-SRCS = channel.c hub.c
-LCLHDRS := channel.h
+channel-types = \
+	      file \
+	      broadcast \
+	      tee \
+	      module
 
-OBJS = $(SRCS:.c=.o)
+libchannel.so-LDLIBS += -ldl
+LCLHDRS=channel.h
+installhdrs=channel.h
+
+HURDLIBS = shouldbeinlibc
+OBJS = $(SRCS:.c=.o) $(GUNZIP_OBJS) $(BUNZIP2_OBJS)
 
 include ../Makeconf
+
+module-CPPFLAGS = -D'CHANNEL_SONAME_SUFFIX=".so.$(hurd-version)"'
+
+# You can use this rule to make a dynamically-loadable version of any
+# of the modules.  We don't make any of these by default, since we
+# just include all the standard channel types in libchannel.so itself.
+libchannel_%.so.$(hurd-version): %_pic.o libchannel.so
+	$(CC) -shared -Wl,-soname=$@ -o $@ \
+	      $(rpath) $(CFLAGS) $(LDFLAGS) $(libchannel_$*.so-LDFLAGS) $^
+
+# Each libchannel_TYPE.a is in fact an object file script so that
+# `-lchannel_TYPE' just has the same effect as `-u
+# channel_TYPE_class'.
+$(channel-types:%=libchannel_%.a): libchannel_%.a: $(srcdir)/Makefile
+	$(CC) -r -nostdlib -nostartfiles -x c /dev/null \
+	      -o $@ -u channel_$*_class
+cleantarg += $(channel-types:%=libchannel_%.a)
+
+all: $(channel-types:%=libchannel_%.a)
+
+install: $(channel-types:%=$(libdir)/libchannel_%.a)
+$(channel-types:%=$(libdir)/libchannel_%.a): $(libdir)/%: %
+	$(INSTALL_DATA) $< $@

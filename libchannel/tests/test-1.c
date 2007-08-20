@@ -53,8 +53,7 @@ buf_realloc (struct buf **buf, size_t len)
 
 static error_t
 triv_fifo_read (struct channel *channel,
-		mach_msg_type_number_t amount,
-		void **buf, mach_msg_type_number_t *len)
+		size_t amount, void **buf, size_t *len)
 {
   struct buf *fifo_buf = channel->class_hook;
   int n = MIN (amount, fifo_buf->len);
@@ -86,9 +85,8 @@ triv_fifo_read (struct channel *channel,
 }
 
 static error_t
-triv_fifo_write (struct channel *channel,
-		 const void *buf, mach_msg_type_number_t len,
-		 mach_msg_type_number_t *amount)
+triv_fifo_write (struct channel *channel, void *buf, size_t len,
+		 size_t *amount)
 {
   struct buf *fifo_buf = channel->class_hook;
   size_t old_len = fifo_buf->len;
@@ -141,7 +139,7 @@ const struct channel_class triv_fifo_class =
 error_t
 triv_fifo_create_hub (int flags, struct channel_hub **hub)
 {
-  return channel_alloc_hub (&triv_fifo_class, flags, hub);
+  return channel_alloc_hub (&triv_fifo_class, 0, flags, hub);
 }
 
 static error_t

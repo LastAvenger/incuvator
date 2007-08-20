@@ -59,7 +59,10 @@ error_t
 channel_open (struct channel_hub *hub, int flags,
 	      struct channel **channel)
 {
-  error_t err = channel_alloc (hub, flags, channel);
+  error_t err;
+
+  flags |= hub->flags & (CHANNEL_READONLY | CHANNEL_WRITEONLY);
+  err = channel_alloc (hub, flags, channel);
   if (err)
     return err;
 
@@ -145,8 +148,8 @@ channel_read (struct channel *channel, size_t amount,
    witten.  Block until data can be written.  If channel is read-only
    return EPERM, otherwise forward call to CHANNEL's write method.  */
 error_t
-channel_write (struct channel *channel, const void *buf,
-	       size_t len, size_t *amount)
+channel_write (struct channel *channel, void *buf, size_t len,
+	       size_t *amount)
 {
   if (channel->flags & CHANNEL_READONLY)
     return EPERM;

@@ -20,26 +20,45 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111, USA. */
 
-#include <malloc.h>
-
 #include "channel.h"
+
+#include <string.h>
+#include <malloc.h>
 
 /* Allocate a new hub of CLASS with FLAGS set, then return it in HUB.
    Return ENOMEM if memory for the hub couldn't be allocated.  */
 error_t
-channel_alloc_hub (const struct channel_class *class, int flags,
+channel_alloc_hub (const struct channel_class *class,
+		   const char *name, int flags,
 		   struct channel_hub **hub)
 {
-  struct channel_hub *new_hub = malloc (sizeof (struct channel_hub));
-  if (! new_hub)
+  error_t err;
+  struct channel_hub *new = malloc (sizeof (struct channel_hub));
+  if (! new)
     return ENOMEM;
 
-  mutex_init (&new_hub->lock);
-  new_hub->class = class;
-  new_hub->flags = flags;
-  new_hub->hook = 0;
+  if (flags & CHANNEL_HARD_READONLY)
+    flags |= CHANNEL_READONLY;
 
-  *hub = new_hub;
+  if (flags & CHANNEL_HARD_WRITEONLY)
+    flags |= CHANNEL_WRITEONLY;
+
+  mutex_init (&new->lock);
+  new->name = 0;
+  new->flags = flags;
+  new->hook = 0;
+  new->children = 0;
+  new->num_children = 0;
+
+  new->class = class;
+
+  err = channel_set_hub_name (new, name);
+  if (err)
+    free (new);
+
+  if (! err)
+    *hub = new;
+
   return 0;
 }
 
@@ -49,12 +68,36 @@ channel_alloc_hub (const struct channel_class *class, int flags,
 void
 channel_free_hub (struct channel_hub *hub)
 {
+  int i;
+
   if (hub->class->clear_hub)
     (*hub->class->clear_hub) (hub);
 
   mutex_clear (&hub->lock);
+  free (hub->name);
+
+  for (i = 0; i < hub->num_children; i++)
+    channel_free_hub (hub->children[i]);
+
   free (hub);
 }
+
+/* Set name of HUB to copy of NAME.  Return ENOMEM if no memory if
+   available.  */
+error_t
+channel_set_hub_name (struct channel_hub *hub, const char *name)
+{
+  char *copy = name ? strdup (name) : 0;
+  if (name && !copy)
+    return ENOMEM;
+
+  if (hub->name)
+    free (hub->name);
+
+  hub->name = copy;
+  return 0;
+}
+
 
 /* Set the flags FLAGS in HUB.  Remove any already set flags in FLAGS, if
    FLAGS then contain backend flags call set_hub_flags method with with
