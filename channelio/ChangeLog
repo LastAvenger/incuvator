@@ -1,0 +1,9 @@
+2007-08-20  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* Makefile: New file.  Based on `streamio/Makefile'
+	* channelio.c: New file.  Based on `streamio/streamio.c'
+	* io.c: New file.  Based on `streamio/io.c'
+	* node.c: New file.
+	* node.h: New file.  Based on `streamio/dev.h'
+	* open.c: New file.
+	* open.h: New file.  Based on `streamio/open.h'
