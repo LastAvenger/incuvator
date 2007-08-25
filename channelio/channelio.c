@@ -266,10 +266,12 @@ check_open_hook (struct trivfs_control *trivfs_control,
   if (node->channel_name == 0)
     /* This means we had no channel arguments.
        We are to operate on our underlying node. */
-    err = channel_fetch_hub (channelio_fsys->underlying, flags, 0, &hub);
+    err = channel_fetch_hub (channelio_fsys->underlying,
+			     modes_to_flags (flags), 0, &hub);
   else
     /* Create hub based on the previously parsed channel arguments.  */
-    err = channel_create_parsed_hub (node->channel_name, flags, &hub);
+    err = channel_create_parsed_hub (node->channel_name,
+				     modes_to_flags (flags), &hub);
 
   if (!err && !node_check_perms (node, flags))
     err = EPERM;
