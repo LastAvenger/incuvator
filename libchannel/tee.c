@@ -132,8 +132,6 @@ channel_create_tee_hub (const char *name, int flags,
 
   if (! err)
     *hub = new;
-  else
-    channel_free_hub (new);
 
   return err;
 }

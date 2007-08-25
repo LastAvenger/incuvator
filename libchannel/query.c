@@ -42,13 +42,15 @@ channel_create_query_hub (const char *name, int flags,
   file_t node = file_name_lookup (name, O_READ, 0);
 
   if (node == MACH_PORT_NULL)
-    return errno;
+    {
+      mach_port_deallocate (mach_task_self (), node);
+      err = errno;
+    }
+  else
+    err = channel_fetch_hub (node, flags, classes, hub);
 
-  err = channel_fetch_hub (node, flags, classes, hub);
   if (! err)
     return 0;
-
-  mach_port_deallocate (mach_task_self (), node);
 
   if (flags & CHANNEL_NO_FILEIO)
     return err;

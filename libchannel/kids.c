@@ -185,8 +185,9 @@ channel_create_hub_children (const char *name, int flags,
       if (err)
 	/* Failure opening some child, deallocate what we've done so far.  */
 	{
-	  while (--k >= 0)
-	    channel_free_hub ((*hubs)[k]);
+	  k--;
+	  while (k > 0)
+	    channel_free_hub ((*hubs)[--k]);
 	  free (*hubs);
 	}
 

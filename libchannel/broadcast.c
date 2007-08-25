@@ -128,8 +128,14 @@ static void
 broadcast_clear_hub (struct channel_hub *hub)
 {
   struct broadcast_hook *hook = hub->hook;
-  condition_clear (&hook->read_cond);
-  free (hook);
+
+  /* Might be null because `channel_free_hub' is called from
+     `channel_create_broadcast_hub'.  */
+  if (hook)
+    {
+      condition_clear (&hook->read_cond);
+      free (hook);
+    }
 }
 
 

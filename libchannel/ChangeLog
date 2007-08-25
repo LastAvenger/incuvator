@@ -1,3 +1,17 @@
+2007-08-25  Carl Fredrik Hammar  <hammy.lite@gmail.com>
+
+	* query.c (channel_create_query_hub): Try to create file hub even
+	if `file_name_lookup' failed.
+
+	* broadcast.c (broadcast_clear_hub): Check if hook is null before
+	freeing it.
+
+	* tee.c (channel_create_tee_hub): Don't free hub that failed
+	during creation.
+
+	* kids.c (channel_create_hub_children): Don't free hub that failed
+	during creation.
+
 2007-08-20  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 
 	* Makefile: Rework libstores Makefile.
