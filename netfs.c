@@ -1,7 +1,7 @@
 /**********************************************************
  * netfs.c
  *
- * Copyright (C) 2004, 2005 by Stefan Siegl <stesie@brokenpipe.de>, Germany
+ * Copyright (C) 2004, 2005, 2007 by Stefan Siegl <stesie@brokenpipe.de>
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Publice License,
@@ -61,11 +61,11 @@ netfs_validate_stat (struct node *node, struct iouser *cred)
 	  node->nn_stat.st_size = node->nn->revision->length;
 	  node->nn_stat.st_blocks = (node->nn_stat.st_size >> 9) + 1;
 
-	  node->nn_stat.st_mtime =
-	    node->nn_stat.st_ctime = node->nn->revision->time;
+	  node->nn_stat.st_mtim.tv_sec = node->nn->revision->time;
+	  node->nn_stat.st_ctim.tv_sec = node->nn->revision->time;
 
-	  node->nn_stat.st_mtime_usec =
-	    node->nn_stat.st_ctime_usec = 0;
+	  node->nn_stat.st_mtim.tv_nsec = 0;
+	  node->nn_stat.st_ctim.tv_nsec = 0;
 	}
     }
 
@@ -573,16 +573,16 @@ netfs_attempt_utimes (struct iouser *cred, struct node *node,
     {
       if (mtime)
 	{
-	  node->nn_stat.st_mtime = mtime->tv_sec;
-	  node->nn_stat.st_mtime_usec = mtime->tv_nsec / 1000;
+	  node->nn_stat.st_mtim.tv_sec = mtime->tv_sec;
+	  node->nn_stat.st_mtim.tv_nsec = mtime->tv_nsec;
 	}
       else
 	flags |= TOUCH_MTIME;
       
       if (atime)
 	{
-	  node->nn_stat.st_atime = atime->tv_sec;
-	  node->nn_stat.st_atime_usec = atime->tv_nsec / 1000;
+	  node->nn_stat.st_atim.tv_sec = atime->tv_sec;
+	  node->nn_stat.st_atim.tv_nsec = atime->tv_nsec;
 	}
       else
 	flags |= TOUCH_ATIME;

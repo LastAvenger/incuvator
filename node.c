@@ -1,7 +1,7 @@
 /**********************************************************
  * node.c
  *
- * Copyright 2004, Stefan Siegl <stesie@brokenpipe.de>, Germany
+ * Copyright 2004, 2007, Stefan Siegl <stesie@brokenpipe.de>, Germany
  * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Publice License,
@@ -99,13 +99,13 @@ cvsfs_make_node(struct netnode *nn)
 	  node->nn_stat.st_size = nn->revision->length;
 	  node->nn_stat.st_blocks = (node->nn_stat.st_size >> 9) + 1;
 
-	  node->nn_stat.st_atime =
-	    node->nn_stat.st_mtime =
-	    node->nn_stat.st_ctime = nn->revision->time;
+	  node->nn_stat.st_atim.tv_sec = nn->revision->time;
+	  node->nn_stat.st_mtim.tv_sec = nn->revision->time;
+	  node->nn_stat.st_ctim.tv_sec = nn->revision->time;
 
-	  node->nn_stat.st_atime_usec =
-	    node->nn_stat.st_mtime_usec =
-	    node->nn_stat.st_ctime_usec = 0;
+	  node->nn_stat.st_atim.tv_nsec = 0;
+	  node->nn_stat.st_mtim.tv_nsec = 0;
+	  node->nn_stat.st_ctim.tv_nsec = 0;
 	}
 
       /* well, we're creating a new node for a file ... */
