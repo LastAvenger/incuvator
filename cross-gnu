@@ -14,6 +14,7 @@
 # Thanks to
 # * Thadeu Lima de Souza Cascardo for updating the instructions about getting
 #   the source code of GCC using the Subversion repositories.
+# * Colin Leitner for reporting shell portability issues.
 
 # Prerequisites:
 #
@@ -142,8 +143,8 @@ set -x &&
 
 mkdir -p "$ROOT" &&
 cd "$ROOT" &&
-mkdir -p bin "$SYS_ROOT"/{include,lib} "$TARGET" &&
-ln -sfn "$SYS_ROOT"/{include,lib} "$TARGET"/ &&
+mkdir -p bin "$SYS_ROOT"/include "$SYS_ROOT"/lib "$TARGET" &&
+ln -sfn "$SYS_ROOT"/include "$SYS_ROOT"/lib "$TARGET"/ &&
 
 
 # Install the cross GNU Binutils.
@@ -199,7 +200,8 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       echo '/* Empty.  */' > "$SYS_ROOT"/lib/libgcc_eh.a
   then
     # Remove the bogus files if building the cross compiler succeesded.
-    rm config.status "$SYS_ROOT"/include/{signal.h,sys/ucontext.h}
+    rm config.status "$SYS_ROOT"/include/signal.h \
+      "$SYS_ROOT"/include/sys/ucontext.h
   else
     # That indication file might already have been installed, but we do not yet
     # have a complete, working cross compiler.
