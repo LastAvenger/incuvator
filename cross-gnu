@@ -196,14 +196,15 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       all-gcc \
       install-gcc &&
 # TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
-# system wants to link against that library.  A totally empty file is fine for
-# binutils-2.16, but not for binutils-2.15.
+# system wants to link against that library.
 # <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.
-      echo '/* Empty.  */' > "$SYS_ROOT"/lib/libgcc_eh.a
+    echo '/* Empty.  */' > "$SYS_ROOT"/lib/libgcc_eh.a
   then
-    # Remove the bogus files if building the cross compiler succeesded.
-    rm config.status "$SYS_ROOT"/include/signal.h \
-      "$SYS_ROOT"/include/sys/ucontext.h
+    mv config.status config.status.removed &&
+    # TODO.
+    rm -f config.cache */config.cache */*/config.cache &&
+    # Remove the bogus files if building the cross compiler succeeded.
+    rm "$SYS_ROOT"/include/signal.h "$SYS_ROOT"/include/sys/ucontext.h
   else
     # That indication file might already have been installed, but we do not yet
     # have a complete, working cross compiler.
@@ -289,7 +290,7 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
     # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
     "$GLIBC_SRC"/configure \
       --without-cvs \
-      --build="`"$GLIBC_SRC"/scripts/config.guess`" \
+      --build="$("$GLIBC_SRC"/scripts/config.guess)" \
       --host="$TARGET" \
       --prefix= \
       --with-headers="$SYS_ROOT"/include \
@@ -305,7 +306,7 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
     # TODO: Why doesn't `make install' do that?
     ln -sf ld.so.1 "$SYS_ROOT"/lib/ld.so &&
     if [ "$CROSS_GNU_REINSTALL_GLIBC" = n ]; then :; else
-      # Force re-linking files once libgcc_eh is available.  TODO: Is the
+      # Force re-linking files once libgcc and libgcc_eh are available.  TODO: Is the
       # following enough?
       rm -f "$GLIBC_SRC".obj/config.status
 #      rm -rf "$GLIBC_SRC".obj
@@ -348,10 +349,12 @@ if ./config.status > /dev/null 2>&1; then :; else
     --enable-languages=c \
     --with-arch=i586
 fi &&
-# Remove the bogus libgcc_eh.
-rm -f "$SYS_ROOT"/lib/libgcc_eh.a &&
 "$MAKE" \
-  all \
+  all &&
+# Remove the bogus libgcc_eh, libgcc and libgcov.
+rm -f "$SYS_ROOT"/lib/libgcc_eh.a \
+  "$ROOT"/lib/gcc/"$TARGET"/*/libgcc.a "$ROOT"/lib/gcc/"$TARGET"/*/libgcov.a &&
+"$MAKE" \
   install &&
 
 
@@ -366,7 +369,7 @@ if ./config.status > /dev/null 2>&1; then :; else
   # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
   "$GLIBC_SRC"/configure \
     --without-cvs \
-    --build="`"$GLIBC_SRC"/scripts/config.guess`" \
+    --build="$("$GLIBC_SRC"/scripts/config.guess)" \
     --host="$TARGET" \
     --prefix= \
     --with-headers="$SYS_ROOT"/include \
