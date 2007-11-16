@@ -11,55 +11,8 @@
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
 # <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.
 
-# Thanks to
-# * Thadeu Lima de Souza Cascardo for updating the instructions about getting
-#   the source code of GCC using the Subversion repositories.
-# * Colin Leitner for reporting shell portability issues.
+# Usage: see <http://www.bddebian.com/~wiki/hurd/building/cross-compiling/>.
 
-# Prerequisites:
-#
-# A build environment for the system you're running the script on is required,
-# i.e. a C compiler with the basic libraries and `make'.  You might also need
-# `flex' and `bison'.
-
-# Usage:
-#
-# Place `cross-gnu' and `cross-gnu-env' somewhere in `$PATH', e.g. in `~/bin/'.
-
-# Read <http://www.bddebian.com/~wiki/hurd/building/cross-compiling/>.
-
-# Unpack the tarballs if you downloaded any.
-
-# Create a directory where the cross build shall take place and `cd' to that
-# directory.  Create a subdirectory `src' and create symbolic links for every
-# of the above packages: from `src/PACKAGE' to where you stored or unpacked it.
-# If you don't intend to build several cross compilers or use the source trees
-# otherwise, you can also directly store the source trees in `src/'.  The
-# source trees can be shared between multiple cross build trees since the
-# package's build systems are supposed not to modify the files in the source
-# trees.  Not all packages adhere to that, but they fail to do so only for
-# pre-processed documentation, etc., as far as I can tell.
-
-# Run
-# $ ROOT=. cross-gnu
-# ... to create the cross build environment in the current directory from the
-# sources in `src/'.
-
-# Later, run
-# $ ROOT=WHERE_THE_ROOT_OF_THE_CROSS_BUILD_TREE_IS; . cross-gnu-env
-# ... to set up `$PATH' (and some other environment variables; have a look at
-# cross-gnu-env), so that you can easily use e.g. the cross compiler running
-# `$TARGET-gcc'.
-
-# Notes:
-
-# You can re-run `cross-gnu' to rebuild the parts of the sources that have
-# changed since the last run.  This might save a lot of time and is especially
-# useful if you aren't working with unpacked tarballs, but on CVS's branches or
-# want to quickly get a new tool chain with patches you applied to the source
-# trees.
-# I would, however, _not_ recommend to use this technique when doing major
-# changes to the source trees, like switching from gcc-3.3 to gcc-3.4.
 
 # There are several parts marked with `TODO' in this file; feel free to have a
 # look at these issues and send the outcome back to me.
