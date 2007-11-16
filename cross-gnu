@@ -179,6 +179,7 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       --with-sysroot="$SYS_ROOT" \
       --disable-nls \
       --disable-shared \
+      --disable-threads \
       --without-headers \
       --with-newlib \
       --enable-languages=c
