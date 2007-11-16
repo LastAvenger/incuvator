@@ -110,7 +110,7 @@ mkdir -p "$GCC_SRC".obj &&
 cd "$GCC_SRC".obj &&
 # Perhaps we already have a complete cross GCC?
 if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
-  if ./config.status > /dev/null 2>&1; then :; else
+  if ./config.status --version > /dev/null 2>&1; then :; else
     # TODO.  Why ``--with-newlib''?
     "$GCC_SRC"/configure \
       --target="$TARGET" \
@@ -199,7 +199,7 @@ fi &&
 
 mkdir -p "$MIG_SRC".obj &&
 cd "$MIG_SRC".obj &&
-if ./config.status > /dev/null 2>&1; then :; else
+if ./config.status --version > /dev/null 2>&1; then :; else
   "$MIG_SRC"/configure \
     --target="$TARGET" \
     --prefix="$ROOT"
@@ -239,7 +239,7 @@ fi &&
 if test -h "$SYS_ROOT"/lib/ld.so; then :; else
   mkdir -p "$GLIBC_SRC".obj &&
   cd "$GLIBC_SRC".obj &&
-  if ./config.status > /dev/null 2>&1; then :; else
+  if ./config.status --version > /dev/null 2>&1; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
     "$GLIBC_SRC"/configure \
       --without-cvs \
@@ -290,7 +290,7 @@ fi &&
 # Install a complete cross GCC.
 
 cd "$GCC_SRC".obj &&
-if ./config.status > /dev/null 2>&1; then :; else
+if ./config.status --version > /dev/null 2>&1; then :; else
   # TODO: At the moment we only configure for creating a C compiler.
   "$GCC_SRC"/configure \
     --target="$TARGET" \
@@ -314,7 +314,7 @@ rm -f "$SYS_ROOT"/lib/libgcc_eh.a \
 
 mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
-if ./config.status > /dev/null 2>&1; then :; else
+if ./config.status --version > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
   "$GLIBC_SRC"/configure \
     --without-cvs \
@@ -335,7 +335,7 @@ fi &&
 if test -d "$GDB_SRC"/; then
   mkdir -p "$GDB_SRC".obj &&
   cd "$GDB_SRC".obj &&
-  if ./config.status > /dev/null 2>&1; then :; else
+  if ./config.status --version > /dev/null 2>&1; then :; else
     "$GDB_SRC"/configure \
       --target="$TARGET" \
       --prefix="$ROOT" \
@@ -353,7 +353,7 @@ if test -d "$GDB_SRC"/; then
   if grep -q '86-\*-gnu\*' "$GDB_SRC"/gdb/gdbserver/README; then
     mkdir -p gdb/gdbserver &&
     cd gdb/gdbserver &&
-    if ./config.status > /dev/null 2>&1; then :; else
+    if ./config.status --version > /dev/null 2>&1; then :; else
       "$GDB_SRC"/gdb/gdbserver/configure \
         --host="$TARGET" \
         --prefix="$SYS_ROOT"
