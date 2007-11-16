@@ -292,11 +292,15 @@ fi &&
 cd "$GCC_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # TODO: At the moment we only configure for creating a C compiler.
+  # GCC 4.1 (and also the newer ones without patching) don't default to
+  # enabling threading support for `$TARGET', thus ``--enable-threads=posix''
+  # is given.
   "$GCC_SRC"/configure \
     --target="$TARGET" \
     --prefix="$ROOT" \
     --with-sysroot="$SYS_ROOT" \
     --disable-nls \
+    --enable-threads=posix \
     --enable-languages=c \
     --with-arch=i586
 fi &&
