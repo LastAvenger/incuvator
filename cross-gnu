@@ -241,18 +241,13 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
   cd "$GLIBC_SRC".obj &&
   if ./config.status > /dev/null 2>&1; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
-    # TODO: Unless overridden, the build system is forced to think that the
-    # linker doesn't support the `-z relro' flag, because there are unfixed
-    # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
     "$GLIBC_SRC"/configure \
       --without-cvs \
       --build="$("$GLIBC_SRC"/scripts/config.guess)" \
       --host="$TARGET" \
       --prefix= \
       --with-headers="$SYS_ROOT"/include \
-      --disable-profile \
-      ${CROSS_GNU_TLS---without-tls} \
-      ${CROSS_GNU_Z_RELRO-libc_cv_z_relro=no}
+      --disable-profile
   fi &&
   if "$MAKE" \
        install_root="$SYS_ROOT" \
@@ -321,18 +316,13 @@ mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
 if ./config.status > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
-  # TODO: Unless overridden, the build system is forced to think that the
-  # linker doesn't support the `-z relro' flag, because there are unfixed
-  # bugs in glibc w.r.t. that flag.  Likewise for `--without-tls'.
   "$GLIBC_SRC"/configure \
     --without-cvs \
     --build="$("$GLIBC_SRC"/scripts/config.guess)" \
     --host="$TARGET" \
     --prefix= \
     --with-headers="$SYS_ROOT"/include \
-    --disable-profile \
-    ${CROSS_GNU_TLS---without-tls} \
-    ${CROSS_GNU_Z_RELRO-libc_cv_z_relro=no}
+    --disable-profile
 fi &&
 "$MAKE" \
   install_root="$SYS_ROOT" \
