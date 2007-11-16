@@ -18,11 +18,17 @@
 # look at these issues and send the outcome back to me.
 
 
-# Set up the environment.
+# Check for `cross-gnu-env' having been ran.
 
-. cross-gnu-env
-
-case $? in 0) :;; *) (exit "$?");; esac &&
+if [ x"${CROSS_GNU_REINSTALL_GLIBC-not_set}" = xnot_set ]; then
+  cat >&2 <<"EOT" &&
+Please see <http://www.bddebian.com/~wiki/hurd/building/cross-compiling/> about
+how to use this shell script.
+EOT
+  exit 100
+EOF
+else :
+fi &&
 
 
 # Be verbose.
