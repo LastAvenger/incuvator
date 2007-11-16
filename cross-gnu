@@ -182,7 +182,8 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       --disable-threads \
       --without-headers \
       --with-newlib \
-      --enable-languages=c
+      --enable-languages=c \
+      --with-arch=i586
   fi &&
 
 # TODO: GCC 3.3 and GCC 3.4 need this for building libgcc.a.  Not needed for
@@ -344,7 +345,8 @@ if ./config.status > /dev/null 2>&1; then :; else
     --prefix="$ROOT" \
     --with-sysroot="$SYS_ROOT" \
     --disable-nls \
-    --enable-languages=c
+    --enable-languages=c \
+    --with-arch=i586
 fi &&
 # Remove the bogus libgcc_eh.
 rm -f "$SYS_ROOT"/lib/libgcc_eh.a &&
