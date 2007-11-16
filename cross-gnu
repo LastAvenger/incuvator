@@ -111,6 +111,7 @@ cd "$GCC_SRC".obj &&
 # Perhaps we already have a complete cross GCC?
 if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
   if ./config.status > /dev/null 2>&1; then :; else
+    # TODO.  Why ``--with-newlib''?
     "$GCC_SRC"/configure \
       --target="$TARGET" \
       --prefix="$ROOT" \
@@ -125,7 +126,7 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
   fi &&
 
 # TODO: GCC 3.3 and GCC 3.4 need this for building libgcc.a.  Not needed for
-# GCC 4.0.
+# GCC 4.0.  Get rid of this?
   : > "$SYS_ROOT"/include/signal.h &&
   mkdir -p "$SYS_ROOT"/include/sys &&
   : > "$SYS_ROOT"/include/sys/ucontext.h &&
@@ -306,7 +307,8 @@ if ./config.status > /dev/null 2>&1; then :; else
 fi &&
 "$MAKE" \
   all &&
-# Remove the bogus libgcc_eh, libgcc and libgcov.
+# Remove the bogus libgcc_eh, libgcc and libgcov that may have been installed
+# earlier.
 rm -f "$SYS_ROOT"/lib/libgcc_eh.a \
   "$ROOT"/lib/gcc/"$TARGET"/*/libgcc.a "$ROOT"/lib/gcc/"$TARGET"/*/libgcov.a &&
 "$MAKE" \
