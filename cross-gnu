@@ -26,69 +26,7 @@
 #
 # Place `cross-gnu' and `cross-gnu-env' somewhere in `$PATH', e.g. in `~/bin/'.
 
-# Get the source code of the
-
-# * GNU Binutils, <http://gnu.org/software/binutils/>, `src/binutils'
-#
-#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
-#       co -r binutils-2_17-branch binutils
-#   $ mv src binutils-2_17-branch
-#
-#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/binutils/>.
-
-# * GNU Compiler Collection, <http://gcc.gnu.org/>, `src/gcc'
-#
-#   $ svn co svn://gcc.gnu.org/svn/gcc/branches/BRANCH gcc
-#   $ mv gcc BRANCH
-#
-#   BRANCH is one of `gcc-3_3-branch', `gcc-3_4-branch', `gcc-4_0-branch',
-#   `gcc-4_1-branch' or the tag of a released version like `gcc_3_4_3_release'.
-#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gcc/>.
-
-# * GNU C Library, <http://gnu.org/software/libc/>, `src/glibc'
-#
-#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/glibc \
-#       co -r glibc-2_3-branch glibc
-#   $ mv libc glibc-2_3-branch
-#
-#   Change `glibc-2_3-branch' to `glibc-2_5-branch' to get the glibc 2.5 branch
-#   or omit `-r glibc-2_3-branch' if you want to get the trunk, i.e. the glibc
-#   2.6 branch, but note that building both of them currently won't work
-#   without heavy patching.
-#
-#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/glibc/>.
-#
-#   If you want to use GCC 4.1 or newer, you'll also need to apply the
-#   following patch, for both glibc-2_3-branch and glibc-2_5-branch:
-#   <http://nic-nac-project.de/~schwinge/tmp/init-first.c_vs._GCC_4.1.patch>.
-#
-#   If you use a GNU Make version newer than 3.80, you also need to apply the
-#   following patch to glibc-2_3-branch:
-#   <http://sourceware.org/bugzilla/show_bug.cgi?id=2507#c2>.
-
-# * GNU Hurd, <http://hurd.gnu.org/>, `src/hurd'
-#
-#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co hurd
-
-# * GNU Mach (gnumach-1-branch), <http://hurd.gnu.org/>, `src/gnumach'
-#
-#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd \
-#       co -r gnumach-1-branch gnumach
-#   $ mv gnumach gnumach-1-branch
-
-# * GNU Mach Interface Generator, <http://hurd.gnu.org/>, `src/mig'
-#
-#   $ cvs -d:pserver:anoncvs@cvs.gnu.org:/cvsroot/hurd co mig
-
-# * GNU Debugger, <http://gnu.org/software/gdb/>, `src/gdb'
-#
-#   This is optional and will only be compiled if present.
-#
-#   $ cvs -d:pserver:anoncvs@sources.redhat.com:/cvs/src \
-#       co -r gdb_6_6-branch gdb
-#   $ mv src gdb_6_6-branch
-#
-#   Or fetch a tarball from <ftp://ftp.gnu.org/gnu/gdb/>.
+# Read <http://www.bddebian.com/~wiki/hurd/building/cross-compiling/>.
 
 # Unpack the tarballs if you downloaded any.
 
