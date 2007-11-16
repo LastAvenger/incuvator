@@ -195,6 +195,23 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
   if "$MAKE" \
       all-gcc \
       install-gcc &&
+    if ! test -d "$GCC_SRC"/libgcc/; then :; else
+      # libgcc is new with GCC 4.3.
+      if test -f "$ROOT"/lib/gcc/"$TARGET"/*/include/limits.h; then :; else
+        # TODO.  What is GCC 4.3 doing there?
+        mv "$ROOT"/lib/gcc/"$TARGET"/*/include-fixed/limits.h \
+          "$ROOT"/lib/gcc/"$TARGET"/*/include/
+      fi &&
+      "$MAKE" \
+        configure-target-libgcc &&
+      ( cd "$TARGET"/libgcc &&
+#        echo '/* Empty.  */' > libgcc.a &&
+#        echo '/* Empty.  */' > libgcov.a &&
+#        make libgcc-extra-parts &&
+#        make RANLIB=: install ) &&
+        # We need the `crt*.o' files and parts of `libgcc.a'.
+        make 'libgcc-objects = $(lib2funcs-o) $(lib2-divmod-o)' all install )
+    fi &&
 # TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
 # system wants to link against that library.
 # <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.
