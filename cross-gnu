@@ -101,14 +101,8 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
           "$ROOT"/lib/gcc/"$TARGET"/*/include/
       fi &&
       "$MAKE" \
-        configure-target-libgcc &&
-      ( cd "$TARGET"/libgcc &&
-#        echo '/* Empty.  */' > libgcc.a &&
-#        echo '/* Empty.  */' > libgcov.a &&
-#        make libgcc-extra-parts &&
-#        make RANLIB=: install ) &&
-        # We need the `crt*.o' files and parts of `libgcc.a'.
-        make 'libgcc-objects = $(lib2funcs-o) $(lib2-divmod-o)' all install )
+	all-target-libgcc \
+	install-target-libgcc
     fi &&
 # TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
 # system wants to link against that library.
