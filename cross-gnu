@@ -95,11 +95,6 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       install-gcc &&
     if ! test -d "$GCC_SRC"/libgcc/; then :; else
       # libgcc is new with GCC 4.3.
-      if test -f "$ROOT"/lib/gcc/"$TARGET"/*/include/limits.h; then :; else
-        # TODO.  What is GCC 4.3 doing there?
-        mv "$ROOT"/lib/gcc/"$TARGET"/*/include-fixed/limits.h \
-          "$ROOT"/lib/gcc/"$TARGET"/*/include/
-      fi &&
       "$MAKE" \
 	all-target-libgcc \
 	install-target-libgcc
