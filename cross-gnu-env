@@ -93,3 +93,7 @@ if gmake --version 2> /dev/null | grep -q GNU
 then prj_x2 prj_set MAKE gmake
 else prj_x2 prj_set MAKE make
 fi
+
+# See GNU Mach's `Makefile.am' for why.  This is for the packages that don't
+# handle it themselves.
+prj_x2 prj_set INSTALL "$GNUMACH_SRC"/build-aux/install-sh\ -C
