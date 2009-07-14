@@ -1,6 +1,6 @@
 /*
-  Copyright (C) 2004, 2007 Free Software Foundation, Inc.
-  Copyright (C) 2004, 2007 Giuseppe Scrivano.
+  Copyright (C) 2004, 2007, 2009 Free Software Foundation, Inc.
+  Copyright (C) 2004, 2007, 2009 Giuseppe Scrivano.
   Written by Giuseppe Scrivano <gscrivano@gnu.org>
   
   This program is free software; you can redistribute it and/or
@@ -20,8 +20,8 @@
 
 void
 auth_data_fn (const char *server, const char *share, char *workgroup,
-	      int wgmaxlen, char *username, int unmaxlen, char *password,
-	      int pwmaxlen)
+              int wgmaxlen, char *username, int unmaxlen, char *password,
+              int pwmaxlen)
 {
   if (strcmp (server, credentials.server))
     return;

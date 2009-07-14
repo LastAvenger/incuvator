@@ -1,6 +1,6 @@
 /*
-  Copyright (C) 2004, 2007 Free Software Foundation, Inc.
-  Copyright (C) 2004, 2007 Giuseppe Scrivano.
+  Copyright (C) 2004, 2007, 2009 Free Software Foundation, Inc.
+  Copyright (C) 2004, 2007, 2009 Giuseppe Scrivano.
   Written by Giuseppe Scrivano <gscrivano@gnu.org>
   
   This program is free software; you can redistribute it and/or
@@ -75,9 +75,8 @@ main (int argc, char *argv[])
   int err;
   task_get_bootstrap_port (mach_task_self (), &bootstrap);
   if (bootstrap == MACH_PORT_NULL)
-    {
-      error (1, errno, "You need to run this as a translator!");      
-    }
+    error (EXIT_FAILURE, errno, "You need to run this as a translator!");      
+
   credentials.server = 0;
   credentials.share = 0;
   credentials.workgroup = 0;
@@ -86,22 +85,23 @@ main (int argc, char *argv[])
   
   argp_parse(&smb_argp, argc, argv, 0, 0, &credentials);
   
-  if((credentials.server == 0)  || (credentials.share == 0)|| (credentials.workgroup == 0)|| (credentials.username == 0)|| (credentials.password == 0))
-    {
-      error(2 , EINVAL, "You must specify server - share - workgroup - username - password !!!\n");
-    }
-    
+  if(!credentials.server  || !credentials.share || !credentials.workgroup
+     || !credentials.username || !credentials.password)
+    error (EXIT_FAILURE, EINVAL, "You must specify server - share - workgroup - username "
+           " - password !!!\n");
+
   err = init_smb ();  
-  
+
   if (err < 0)
-    {
-      error(3, errno, "Error init_smb\n");
-    }
+    error (EXIT_FAILURE, errno, "Error init_smb\n");
+
   netfs_init();
   netfs_startup(bootstrap, 0);
   smbfs_init();
+
   for(;;)
     netfs_server_loop ();
+
   smbfs_terminate ();
   return 0;
 }
