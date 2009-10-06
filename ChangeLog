@@ -1,0 +1,7 @@
+2f2c75f8c886f0f58d4f621e5fc662ba297e49ca is the last commit imported from CVS.
+All commits after that one have valid author and committer information.
+
+Use this to examine the change log for earlier changes:
+
+    $ git show 2f2c75f8c886f0f58d4f621e5fc662ba297e49ca:channelio/ChangeLog
+    $ git show 2f2c75f8c886f0f58d4f621e5fc662ba297e49ca:libchannel/ChangeLog
