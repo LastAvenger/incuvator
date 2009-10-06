@@ -45,10 +45,10 @@
 /*---------------------------------------------------------------------------*/
 /*--------Global Variables---------------------------------------------------*/
 /*The name of the server*/
-char *netfs_server_name = "nsmux";
+char *netfs_server_name = PACKAGE_NAME;
 /*---------------------------------------------------------------------------*/
 /*The version of the server*/
-char *netfs_server_version = "0.0";
+char *netfs_server_version = PACKAGE_VERSION;
 /*---------------------------------------------------------------------------*/
 /*The maximal length of a chain of symbolic links*/
 int netfs_maxsymlinks = 12;
