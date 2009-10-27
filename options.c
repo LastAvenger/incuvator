@@ -100,7 +100,8 @@ static const struct argp_child argp_children_startup[] = {
 
 /*---------------------------------------------------------------------------*/
 /*The version of the server for argp*/
-const char *argp_program_version = "0.0";
+const char *argp_program_version = PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 /*---------------------------------------------------------------------------*/
 /*The arpg parser for runtime arguments*/
 struct argp argp_runtime = { 0, 0, 0, 0, argp_children_runtime };
