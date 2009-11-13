@@ -1,0 +1,1 @@
+pcnet32.prof: pcnet32_p.o net_init_p.o deviceUser_p.o machUser_p.o irq_p.o net_p.o main_p.o ds_routines_p.o queue_p.o device_replyUser_p.o deviceServer_p.o notifyServer_p.o kmem_p.o ../libthreads/libthreads_p.a ../libports/libports_p.a ../libfshelp/libfshelp_p.a ../libshouldbeinlibc/libshouldbeinlibc_p.a ../libtrivfs/libtrivfs_p.a
