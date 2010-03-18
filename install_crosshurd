@@ -1,0 +1,281 @@
+#!/bin/sh
+
+set -x
+
+{ [ x"$MACHINE" != x ] \
+  || read MACHINE; } &&
+. ~/machines/"$MACHINE" &&
+
+TARGET_MOUNT=/tmp/crosshurd.$MACHINE &&
+mkdir "$TARGET_MOUNT" &&
+
+{ [ x"$TARGET" != x ] \
+  || read TARGET; } &&
+
+# <http://bugs.debian.org/471528>
+sudo mkfs.ext2 -F -o hurd -I 128 -b 4096 "$TARGET" &&
+
+sudo mount -t ext2 "$TARGET" "$TARGET_MOUNT" &&
+
+sudo \
+  env http_proxy=http://192.168.10.50:8123/ \
+  /usr/share/crosshurd/makehurddir.sh "$TARGET_MOUNT" i486 gnu &&
+
+# <http://bugs.debian.org/533321>
+#sudo sed -i \
+#  -e s%--force-auto-select%% \
+#  "$TARGET_MOUNT"/native-install &&
+
+# We have our own /etc/fstab.
+sudo sed -i \
+  -e s%/etc/fstab%/dev/null%g \
+  "$TARGET_MOUNT"/native-install &&
+
+sudo dd of="$TARGET_MOUNT"/install <<EOF_INSTALL &&
+#!/bin/sh
+
+set -x &&
+
+export TERM &&
+TERM=mach &&
+
+umask 022 &&
+
+# Needed for dpkg.
+{ test -c /servers/socket/1 \
+    || settrans -c /servers/socket/1 /hurd/pflocal; } &&
+
+# Do not configure debconf, only unpack it.
+dpkg --unpack --force-depends /var/cache/apt/archives/debconf_*.deb &&
+
+debconf-set-selections <<EOS &&
+ca-certificates	ca-certificates/trust_new_crts	select	yes
+adduser	adduser/homedir-permission	boolean	true
+dash	dash/sh	boolean	true
+debconf	debconf/frontend	select	Dialog
+debconf	debconf/priority	select	medium
+tcpd	tcpd/paranoid-mode	boolean	false
+libpam-runtime	libpam-runtime/override	boolean	false
+libpam-runtime	libpam-runtime/profiles	multiselect	unix, gnome-keyring, consolekit
+libpam-runtime	libpam-runtime/conflicts	error	
+EOS
+
+( cd /dev &&
+  MAKEDEV \
+    $DISK_ROOT $DISK_SWAP ) &&
+
+# Already enable swap up here.
+mkswap.linux -v1 /dev/$DISK_SWAP &&
+/hurd/mach-defpager &&
+swapon -a &&
+
+./native-install &&
+
+passwd \
+  -d root &&
+
+if test -r /dev/random; then :; else
+  cp /hurd/ext2fs.static /dev/random
+fi &&
+if test -r /dev/urandom; then :; else
+  cp /hurd/ufs.static /dev/urandom
+fi &&
+
+settrans \
+  -fcgap \
+  /servers/socket/2 \
+  /hurd/pfinet \
+  -i eth0 -a $NET_IP_ADDRESS -g $NET_IP_GATEWAY -m $NET_IP_MASK
+EOF_INSTALL
+
+sudo chmod +x "$TARGET_MOUNT"/install &&
+
+sudo dd of="$TARGET_MOUNT"/install-packages <<EOF_INSTALL_PACKAGES &&
+#!/bin/sh
+
+set -x
+
+apt-get update &&
+
+apt-get --purge -y --force-yes dist-upgrade &&
+
+
+# Pre-configure some packages.
+
+# For debconf-get-selections.
+apt-get -y --force-yes install debconf-utils &&
+
+debconf-get-selections > /tmp/debconf-selections &&
+
+while read p q t v; do
+  if grep -q '^[^	]*	'"\$q"'	' < /tmp/debconf-selections; then :; else
+    debconf-set-selections <<EOS
+\$p	\$q	\$t	\$v
+EOS
+  fi
+done <<EOS &&
+cvs	cvs/badrepositories	select	ignore
+cvs	cvs/pserver	boolean	false
+cvs	cvs/repositories	string	/var/lib/cvs
+libpaper1	libpaper/defaultpaper	select	a4
+locales	locales/default_environment_locale	select	None
+locales	locales/locales_to_be_generated	multiselect	en_US.UTF-8 UTF-8
+man-db	man-db/install-setuid	boolean	false
+nullmailer	nullmailer/adminaddr	string	thomas@schwinge.name
+nullmailer	nullmailer/relayhost	string	mail.schwinge.homeip.net qmqp
+nullmailer	shared/mailname	string	$QUALIFIED_HOSTNAME
+popularity-contest	popularity-contest/participate	boolean	true
+tex-common	tex-common/managecache	boolean	false
+x-ttcidfont-conf	x-ttcidfont-conf/tt_backend	select	freetype
+EOS
+
+
+# Install packages.
+
+packages='
+  autoconf
+  autoconf-doc
+  automake
+  bash-doc
+  binutils-doc
+  build-essential
+  dpkg-dev
+  libtool
+  libtool-doc
+  make-doc
+  g++-4.1
+  g++-4.3
+  g++-4.4
+  gcc-4.1-doc
+  gcc-4.3-doc
+  cpp-4.1-doc
+  cpp-4.3-doc
+  gdb
+  gdb-doc
+  hurd-dbg
+  libc0.3-dbg
+  glibc-doc
+  glibc-doc-reference
+  manpages-dev
+  mig
+  cvs
+  darcs
+  git-core
+  gnu-standards
+  subversion
+  bc
+  bzip2
+  devscripts
+  joe
+  fakeroot
+  file
+  info
+  less
+  locales
+  lynx
+  man
+  manpages
+  netcat
+  nullmailer
+  pkg-config
+  popularity-contest
+  rsync
+  screen
+  sudo
+  ssh
+  texinfo
+  time
+  w3m
+  wdiff
+  wget
+' &&
+
+# dsyslog doesn't install / configure properly, but nullmailer (weakly) depends
+# on it.
+packages=\$packages'
+  dsyslog-
+' &&
+
+# System instability issues.
+packages=\$packages'
+  system-log-daemon-
+  syslog-ng-
+  socklog-run-
+  inetutils-syslogd-
+  dsyslog-
+' &&
+
+# emacs (emacs23) isn't installable yet.
+packages=\$packages'
+  emacs-
+  emacs22
+' &&
+
+apt-get -y --force-yes install \$packages &&
+
+
+apt-get build-dep \
+  libc0.3 \
+  gdb \
+  gnumach \
+  hurd &&
+
+
+# Configure packages.
+
+if grep '^%sudo' /etc/sudoers; then :; else
+  cat >> /etc/sudoers
+fi <<"EOS" &&
+
+%sudo	ALL=(ALL) ALL
+EOS
+
+{ ed /etc/ssh/sshd_config || :; } <<"EOC"
+/^UsePrivilegeSeparation/
+s/yes/no/
+w
+EOC
+EOF_INSTALL_PACKAGES
+
+sudo chmod +x "$TARGET_MOUNT"/install-packages &&
+
+sudo dd of="$TARGET_MOUNT"/etc/hostname <<EOF &&
+$QUALIFIED_HOSTNAME
+EOF
+
+h=$(expr "$QUALIFIED_HOSTNAME" : '\([^\.]*\)') &&
+sudo dd of="$TARGET_MOUNT"/etc/hosts <<"EOF" &&
+127.0.0.1	$QUALIFIED_HOSTNAME $h localhost
+
+::1	localhost ip6-localhost ip6-loopback
+fe00::0	ip6-localnet
+ff00::0	ip6-mcastprefix
+ff02::1	ip6-allnodes
+ff02::2	ip6-allrouters
+ff02::3	ip6-allhosts
+EOF
+unset h &&
+
+sudo dd of="$TARGET_MOUNT"/etc/fstab <<EOF &&
+/dev/$DISK_ROOT / ext2 rw 1 1
+/dev/$DISK_SWAP none swap sw 0 0
+#/dev/... /media/data ext2 rw 1 2
+EOF
+
+sudo ln -sf /usr/share/zoneinfo/Etc/UTC "$TARGET_MOUNT"/etc/localtime &&
+
+sudo dd of="$TARGET_MOUNT"/etc/apt/apt.conf <<"EOF" &&
+Acquire::http::Proxy "http://192.168.10.50:8123/";
+EOF
+
+sudo dd of="$TARGET_MOUNT"/etc/apt/sources.list <<"EOF" &&
+deb http://ftp.us.debian.org/debian unstable main non-free
+deb-src http://ftp.us.debian.org/debian unstable main non-free
+#deb http://ftp.us.debian.org/debian experimental main non-free
+#deb-src http://ftp.us.debian.org/debian experimental main non-free
+
+deb http://ftp.debian-ports.org/debian unreleased main
+deb-src http://ftp.debian-ports.org/debian unreleased main
+EOF
+
+sudo ln -sf crash-kill "$TARGET_MOUNT"/servers/crash
