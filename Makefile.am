@@ -1,4 +1,4 @@
-# Copyright (C) 2009 Free Software Foundation, Inc.
+# Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 # 
 # This file is part of nsmux.
 # 
@@ -17,6 +17,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
+noinst_LIBRARIES =
+MOSTLYCLEANFILES =
+
+
 AM_CPPFLAGS =
 AM_CFLAGS =
 
@@ -28,6 +32,15 @@ AM_CPPFLAGS += \
 
 AM_CFLAGS += \
   -Wall
+
+
+# MIG Setup.
+
+# MIGCOM.
+MIGCOM = $(MIG) -n -cc cat - /dev/null
+
+# Makerules.mig: how to do some MIG-related things.
+include Makerules.mig.am
 
 
 bin_PROGRAMS += \
@@ -43,6 +56,23 @@ nsmux_SOURCES = \
   lib.c \
   magic.c \
   trans.c
+
+
+# Helper, awaiting a proper solution.
+%.server.defs.c:
+	rm -f $@
+	echo \
+	  > $@ \
+	  '#include <$*.defs>' 
+
+# Server stubs.
+nodist_lib_dep_tr_for_defs_a_SOURCES += \
+	mach/notify.server.defs.c
+nodist_nsmux_SOURCES = \
+	mach/notify.server.h \
+	mach/notify.server.c \
+	mach/notify.server.msgids
+
 
 nsmux_CPPFLAGS = \
   -DDEBUG \

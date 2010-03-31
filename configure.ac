@@ -1,4 +1,4 @@
-# Copyright (C) 2009 Free Software Foundation, Inc.
+# Copyright (C) 2009, 2010 Free Software Foundation, Inc.
 # 
 # This file is part of nsmux.
 # 
@@ -35,7 +35,11 @@ AM_INIT_AUTOMAKE(
 
 
 AC_PROG_CC
-AC_PROG_CC_C_O
+AM_PROG_CC_C_O
+AC_PROG_RANLIB
+
+
+AC_CHECK_TOOL([MIG], [mig], [mig])
 
 
 AC_CONFIG_HEADERS([config.h])
