@@ -22,9 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# The files are canonically found at
-# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu> and
-# <http://nic-nac-project.de/~schwinge/tmp/cross-gnu-env>.
+# See <http://www.gnu.org/software/hurd/hurd/building/cross-compiling.html> for
+# usage information.
 
 
 # Functions from Paul Jarc's prjlibs available at
