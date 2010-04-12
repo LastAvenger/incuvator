@@ -231,7 +231,7 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
 fi &&
 
 
-# Install the GNU Hurd's pthreads library.
+# Install the GNU Hurd's core libraries.
 
 cd "$HURD_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
@@ -241,10 +241,23 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --disable-profile
 fi &&
 "$MAKE" \
-  libpthread &&
+  libihash &&
 "$MAKE" \
   prefix="$SYS_ROOT" \
-  libihash-install libpthread-install &&
+  libihash-install &&
+
+mkdir -p "$LIBPTHREAD_SRC".obj &&
+cd "$LIBPTHREAD_SRC".obj &&
+if ./config.status --version > /dev/null 2>&1; then :; else
+  "$LIBPTHREAD_SRC"/configure \
+    --host="$TARGET" \
+    --prefix=
+fi &&
+"$MAKE" \
+  all &&
+"$MAKE" \
+  DESTDIR="$SYS_ROOT" \
+  install &&
 
 
 # Install a complete cross GCC.
