@@ -274,7 +274,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --with-sysroot="$SYS_ROOT" \
     --disable-nls \
     --enable-threads=posix \
-    --enable-languages=c \
+    --enable-languages=c,c++ \
     --with-arch=i586
 fi &&
 "$MAKE" \
