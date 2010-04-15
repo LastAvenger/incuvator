@@ -88,7 +88,7 @@ esac &&
 
 prj_x2 prj_set_default SYS_ROOT "$ROOT"/sys_root &&
 
-prj_x2 prj_set_default TARGET i586-pc-gnu &&
+prj_x2 prj_set_default TARGET i686-pc-gnu &&
 
 prj_x2 prj_set_default BINUTILS_SRC "$ROOT"/src/binutils &&
 prj_x2 prj_set_default GCC_SRC "$ROOT"/src/gcc &&

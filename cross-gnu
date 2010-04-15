@@ -93,7 +93,7 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       --without-headers \
       --with-newlib \
       --enable-languages=c \
-      --with-arch=i586
+      --with-arch=i686
   fi &&
 
 # TODO: GCC 3.3 and GCC 3.4 need this for building libgcc.a.  Not needed for
@@ -201,13 +201,15 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
   cd "$GLIBC_SRC".obj &&
   if ./config.status --version > /dev/null 2>&1; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
+    # TODO: --disable-multi-arch
     "$GLIBC_SRC"/configure \
       --without-cvs \
       --build="$("$GLIBC_SRC"/scripts/config.guess)" \
       --host="$TARGET" \
       --prefix= \
       --with-headers="$SYS_ROOT"/include \
-      --disable-profile
+      --disable-profile \
+      --disable-multi-arch
   fi &&
   if "$MAKE" \
        install_root="$SYS_ROOT" \
@@ -275,7 +277,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --disable-nls \
     --enable-threads=posix \
     --enable-languages=c,c++ \
-    --with-arch=i586
+    --with-arch=i686
 fi &&
 "$MAKE" \
   all &&
@@ -293,13 +295,15 @@ mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
+  # TODO: --disable-multi-arch
   "$GLIBC_SRC"/configure \
     --without-cvs \
     --build="$("$GLIBC_SRC"/scripts/config.guess)" \
     --host="$TARGET" \
     --prefix= \
     --with-headers="$SYS_ROOT"/include \
-    --disable-profile
+    --disable-profile \
+    --disable-multi-arch
 fi &&
 "$MAKE" \
   install_root="$SYS_ROOT" \
