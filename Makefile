@@ -19,6 +19,8 @@
 
 CFLAGS = -g -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
+INSTALL = install
+
 netio: main.o netfs.o node.o lib.o protocol.o
 	gcc $(CFLAGS) -lnetfs -lfshelp -liohelp -lthreads -lports \
 	  -lihash -lshouldbeinlibc \
@@ -42,4 +44,8 @@ protocol.o: protocol.c netio.h lib.h node.h
 clean:
 	rm -rf *.o netio
 
-.PHONY: clean
+install:
+	$(INSTALL) -d $(DESTDIR)/hurd
+	$(INSTALL) netio $(DESTDIR)/hurd
+
+.PHONY: clean install
