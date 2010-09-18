@@ -79,16 +79,14 @@ netfs_attempt_utimes (struct iouser *cred, struct node *node,
 		err = fshelp_isowner (&node->nn_stat, cred);
 
 	if (!err) {
-		if (atime) {
-			node->nn_stat.st_atime = atime->tv_sec;
-			node->nn_stat.st_atime_usec = atime->tv_nsec / 1000;
-		} else
+		if (atime)
+			node->nn_stat.st_atim = atime;
+		else
 			flags |= TOUCH_ATIME;
 
-		if (mtime) {
-			node->nn_stat.st_mtime = mtime->tv_sec;
-			node->nn_stat.st_mtime_usec = mtime->tv_nsec / 1000;
-		} else
+		if (mtime)
+			node->nn_stat.st_mtim = mtime;
+		else
 			flags |= TOUCH_MTIME;
 
 		fshelp_touch (&node->nn_stat, flags, gopherfs_maptime);
