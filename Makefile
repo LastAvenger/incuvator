@@ -31,6 +31,8 @@ LCLHDRS = gopherfs.h
 OBJS = $(SRCS:.c=.o)
 HURDLIBS = -lnetfs -lfshelp -liohelp -lports
 
+INSTALL = install
+
 all: $(target)
 
 $(target): $(OBJS)
@@ -39,3 +41,9 @@ $(target): $(OBJS)
 %.o: %.c $(LCLHDRS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
+clean:
+	-rm -f *.o $(target)
+
+install:
+	$(INSTALL) -d $(DESTDIR)/hurd
+	$(INSTALL) $(target) $(DESTDIR)/hurd/
