@@ -59,7 +59,8 @@ stop-trans:
 	settrans -fg $(TNODE)
 
 install: $(TRANS)
-	$(INSTALL) -m 555 $(TRANS) $(HURD)
+	$(INSTALL) -d $(DESTDIR)$(HURD)
+	$(INSTALL) -m 555 $(TRANS) $(DESTDIR)$(HURD)
 
 clean:
 	-rm -f $(TRANS) $(OBJ) $(TNODE) tags core
