@@ -33,6 +33,14 @@
 #include <sys/mknod.h>
 #endif
 
+enum {
+    TAR_UNKNOWN = 0,
+    TAR_V7,
+    TAR_USTAR,
+    TAR_POSIX,
+    TAR_GNU
+};
+
 /*
  * Header block on tape.
  *
@@ -43,6 +51,7 @@
  */
 #define	RECORDSIZE	512
 #define	NAMSIZ		100
+#define	PREFIX_SIZE	155
 #define	TUNMLEN		32
 #define	TGNMLEN		32
 #define SPARSE_EXT_HDR  21
@@ -75,20 +84,27 @@ union record {
 	char gname[TGNMLEN];
 	char devmajor[8];
 	char devminor[8];
-	/* these following fields were added by JF for gnu */
-	/* and are NOT standard */
-	char atime[12];
-	char ctime[12];
-	char offset[12];
-	char longnames[4];
-#ifdef NEEDPAD
-	char pad;
-#endif
-	struct sparse sp[SPARSE_IN_HDR];
-	char isextended;
-	char realsize[12];	/* true size of the sparse file */
-	/* char	ending_blanks[12];*//* number of nulls at the
-	   end of the file, if any */
+	/* The following bytes of the tar header record were originally unused.
+	 
+	   Archives following the ustar specification use almost all of those
+	   bytes to support pathnames of 256 characters in length.
+
+	   GNU tar archives use the "unused" space to support incremental
+	   archives and sparse files. */
+	union unused {
+	    char prefix[PREFIX_SIZE];
+	    /* GNU extensions to the ustar (POSIX.1-1988) archive format. */
+	    struct oldgnu {
+		char atime[12];
+		char ctime[12];
+		char offset[12];
+		char longnames[4];
+		char pad;
+		struct sparse sp[SPARSE_IN_HDR];
+		char isextended;
+		char realsize[12];	/* true size of the sparse file */
+	    } oldgnu;
+	} unused;
     } header;
     struct extended_header {
 	struct sparse sp[21];
@@ -100,10 +116,8 @@ union record {
 #define	CHKBLANKS	"        "	/* 8 blanks, no null */
 
 /* The magic field is filled with this if uname and gname are valid. */
-#define	TMAGIC		"ustar  "	/* 7 chars and a null */
-#define TMAGLEN  6
-#define TVERSION "00"		/* 00 and no null */
-#define TVERSLEN 2
+#define	TMAGIC		"ustar"		/* ustar and a null */
+#define	OLDGNU_MAGIC	"ustar  "	/* 7 chars and a null */
 
 /* The linkflag defines the type of file */
 #define	LF_OLDNORMAL	'\0'	/* Normal disk file, Unix compat */
@@ -115,6 +129,8 @@ union record {
 #define	LF_DIR		'5'	/* Directory */
 #define	LF_FIFO		'6'	/* FIFO special file */
 #define	LF_CONTIG	'7'	/* Contiguous file */
+#define	LF_EXTHDR	'x'	/* pax Extended Header */
+#define	LF_GLOBAL_EXTHDR 'g'	/* pax Global Extended Header */
 /* Further link types may be defined later. */
 
 /* Note that the standards committee allows only capital A through
@@ -137,8 +153,6 @@ union record {
 #define LF_VOLHDR	'V'	/* This file is a tape/volume header */
 /* Ignore it on extraction */
 
-#define LF_TRANS        'T'	/* GNU/Hurd passive translator */
-
 /*
  * Exit codes from the "tar" program
  */
@@ -150,6 +164,8 @@ union record {
 #define EX_BADVOL	5	/* Special error code means
 				   Tape volume doesn't match the one
 				   specified on the command line */
+
+#define	isodigit(c)	( ((c) >= '0') && ((c) <= '7') )
 
 /*
  * We default to Unix Standard format rather than 4.2BSD tar format.
@@ -171,8 +187,15 @@ union record {
 
 typedef union record tar_record_t;
 
+struct archive {
+  struct store *tar_file;
+  int type;
+  store_offset_t current_tar_position;
+  tar_record_t rec_buf;
+};
+
 extern int  tar_open_archive (struct store *tar_file);
-extern void tar_header2stat (io_statbuf_t *st, tar_record_t *header);
+extern void tar_fill_stat (struct archive *archive, io_statbuf_t *st, tar_record_t *header);
 
 /* Create a tar header based on ST and NAME where NAME is a path.
    If NAME is a hard link (resp. symlink), HARDLINK (resp.

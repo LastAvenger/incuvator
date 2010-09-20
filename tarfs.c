@@ -80,7 +80,7 @@ static struct store *tar_file;
 static struct mutex  tar_file_lock;
 
 /* Archive parsing hook (see tar.c) */
-extern int (* tar_header_hook) (tar_record_t *, off_t);
+extern int (* tar_header_hook) (tar_record_t *, struct archive *);
 
 /* List of tar items for this file */
 static struct tar_list tar_list;
@@ -325,7 +325,7 @@ error_t tarfs_create_node (struct node **newnode, struct node *dir,
    It simply creates the node corresponding to the header.
    OFFSET denotes the offset of the header in the archive.  */
 int
-tarfs_add_header (tar_record_t *hdr, off_t offset)
+tarfs_add_header (tar_record_t *hdr, struct archive *archive)
 {
   error_t err;
   static struct tar_item *last_item = NULL;
@@ -412,7 +412,7 @@ tarfs_add_header (tar_record_t *hdr, off_t offset)
 
 	  /* Add the tar item into the list.  */
 	  err = tar_make_item (&NODE_INFO(new)->tar, new,
-			       0, offset);
+			       0, archive->current_tar_position);
 	  assert_perror (err);
 	}
       }
@@ -431,7 +431,7 @@ tarfs_add_header (tar_record_t *hdr, off_t offset)
       if (new)
       {
 	NEW_NODE_INFO (new);
-	tar_header2stat (&new->nn_stat, hdr);
+	tar_fill_stat (archive, &new->nn_stat, hdr);
 
 	/* Create a cache for the new node.  */
 	err = cache_create (new);
@@ -440,7 +440,7 @@ tarfs_add_header (tar_record_t *hdr, off_t offset)
 
 	/* Add the tar item into the list.  */
 	err = tar_make_item (&NODE_INFO(new)->tar, new,
-			     new->nn_stat.st_size, offset);
+			     new->nn_stat.st_size, archive->current_tar_position);
 	assert_perror (err);
       }
   }
