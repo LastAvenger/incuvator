@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -33,70 +34,82 @@
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>
 
-/* do a DNS lookup for NAME and store result in *ENT */
+/* do a DNS lookup for NAME:PORT and store results in ENT and error in H_ERR */
 error_t
-lookup_host (char *name, struct hostent **ent)
+lookup_host (char *name, unsigned short port, struct addrinfo **ai)
 {
+  /* XXX: cache host lookups. */
+  struct addrinfo hints;
+  char *service;
   error_t err;
-  struct hostent hentbuf;
-  int herr = 0;
-  char *tmpbuf;
-  size_t tmpbuflen = 512;
 
-  tmpbuf = (char *) malloc (tmpbuflen);
-  if (!tmpbuf)
+  memset (&hints, 0, sizeof(hints));
+  hints.ai_family = PF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_IP;
+  hints.ai_flags = AI_NUMERICSERV;
+
+  err = asprintf (&service, "%hu", port);
+  if (err == -1)
     return ENOMEM;
 
-  /* XXX: use getaddrinfo */
-  while ((err = gethostbyname_r (name, &hentbuf, tmpbuf,
-				 tmpbuflen, ent, &herr)) == ERANGE)
-    {
-      tmpbuflen *= 2;
-      tmpbuf = (char *) realloc (tmpbuf, tmpbuflen);
-      if (!tmpbuf)
-	return ENOMEM;
-    }
-  free (tmpbuf);
+  err = getaddrinfo (name, service, &hints, ai);
 
-  if (!herr)
-    return EINVAL;
+  free (service);
 
-  return 0;
+  return err;
 }
 
-/* store the remote socket in *FD after writing a gopher selector
-   to it */
+/* open ENTRY and store the remote socket in *FD */
 error_t
-open_selector (struct netnode * node, int *fd)
+gopher_open (struct gopher_entry *entry, int *fd)
 {
+  struct addrinfo *addr;
   error_t err;
-  struct hostent *server_ent;
-  struct sockaddr_in server;
   ssize_t written;
   size_t towrite;
-
-  err = lookup_host (node->server, &server_ent);
-  if (!err)
-    return err;
-  if (debug_flag)
-    fprintf (stderr, "trying to open %s:%d/%s\n", node->server,
-	     node->port, node->selector);
-
-  server.sin_family = AF_INET;
-  server.sin_port = htons (node->port);
-  server.sin_addr = *(struct in_addr *) server_ent->h_addr;
-
+  
   *fd = socket (PF_INET, SOCK_STREAM, 0);
-  if (*fd == -1)
-    return errno;
+  if (*fd < 0)
+    {
+      debug ("failed to open socket (errno: %s)", strerror(errno));
+      return errno;
+    }
 
-  err = connect (*fd, (struct sockaddr *) &server, sizeof (server));
-  if (err == -1)
-    return errno;
+  err = lookup_host (entry->server, entry->port, &addr);
+  if (err)
+    {
+      debug ("looking up host failed: %s", gai_strerror(err));
+      return err;
+    }
 
-  towrite = strlen (node->selector);
+  /* XXX: cache host lookups. */
+  do
+    {
+      debug ("connecting to %s:%hu...", 
+	     inet_ntoa(((struct sockaddr_in *)addr->ai_addr)->sin_addr), 
+	     ntohs(((struct sockaddr_in *)addr->ai_addr)->sin_port));
+
+      err = connect (*fd, (struct sockaddr_in *) addr->ai_addr, addr->ai_addrlen);
+      if (err)
+	debug ("connect() failed! errno: %s", strerror(errno));
+
+      addr = addr->ai_next;
+    }
+  while (addr && err);
+
+  freeaddrinfo(addr);
+  if (err)
+    {
+      close (*fd);
+      return errno;
+    }
+
+  /* Write selector to *FD. */
+
+  towrite = strlen (entry->selector);
   /* guard against EINTR failures */
-  written = TEMP_FAILURE_RETRY (write (*fd, node->selector, towrite));
+  written = TEMP_FAILURE_RETRY (write (*fd, entry->selector, towrite));
   written += TEMP_FAILURE_RETRY (write (*fd, "\r\n", 2));
   if (written == -1 || written < (towrite + 2))
     return errno;
@@ -104,76 +117,68 @@ open_selector (struct netnode * node, int *fd)
   return 0;
 }
 
-/* fetch a directory node from the gopher server
-   DIR should already be locked */
+/* List all entries from ENTRY and store them in *MAP. */
 error_t
-fill_dirnode (struct netnode * dir)
+gopher_list_entries (struct gopher_entry *entry, struct gopher_entry **map)
 {
-  error_t err = 0;
   FILE *sel;
-  int sel_fd;
-  char *line;
-  size_t line_len;
-  struct node *nd, **prevp;
+  char *line = NULL;
+  size_t line_len = 0;
+  struct gopher_entry *prev = NULL;
+  error_t err = 0;
 
-  err = open_selector (dir, &sel_fd);
-  if (err)
-    return err;
-  if (debug_flag)
-    fprintf (stderr, "filling out dir %s\n", dir->name);
-  errno = 0;
-  sel = fdopen (sel_fd, "r");
-  if (!sel)
-    {
-      close (sel_fd);
-      return errno;
-    }
+  {
+    int fd;
+    err = gopher_open (entry, &fd);
+    if (err)
+	return err;
 
-  dir->noents = TRUE;
-  dir->num_ents = 0;
-  prevp = &dir->ents;
-  line = NULL;
-  line_len = 0;
+    sel = fdopen (fd, "r");
+    if (!sel)
+      {
+	close (fd);
+	return errno;
+      }
+  }
+  
   while (getline (&line, &line_len, sel) >= 0)
     {
-      char type, *name, *selector, *server;
-      unsigned short port;
-      char *tok, *endtok;
+      /* Parse gopher entry. */
+      struct gopher_entry *cur;
+      char *tmp;
 
-      if (debug_flag)
-	fprintf (stderr, "%s\n", line);
+      debug ("%s", line);
+
       if (*line == '.' || err)
 	break;
 
-      /* parse the gopher node description */
-      type = *line;
-      endtok = line + 1;
-      name = strsep (&endtok, "\t");
-      selector = strsep (&endtok, "\t");
-      server = strsep (&endtok, "\t");
-      port = (unsigned short) atoi (strsep (&endtok, "\t"));
-
-      nd = gopherfs_make_node (type, name, selector, server, port);
-      if (!nd)
+      cur = malloc (sizeof (struct gopher_entry));
+      if (!cur)
 	{
-	  err = ENOMEM;
-	  break;
+	 err = ENOMEM;
+	 break;
 	}
-      *prevp = nd;
-      nd->prevp = prevp;
-      prevp = &nd->next;
 
-      dir->num_ents++;
-      if (dir->noents)
-	dir->noents = FALSE;
+      cur->type = line[0];
+      tmp = line + 1;
+      cur->name = strdup(strsep (&tmp, "\t"));
+      cur->selector = strdup(strsep (&tmp, "\t"));
+      cur->server = strdup(strsep (&tmp, "\t"));
+      cur->port = (unsigned short) atoi (strsep (&tmp, "\t"));
+
+      if (!*map)
+	/* First item. */
+	*map = cur;
+      else
+	prev->next = cur;
+
+      cur->prev = prev;
+      cur->next = NULL;
+      prev = cur;
     }
+
   free (line);
+  fclose (sel);
 
-  if (err)
-    {
-      fclose (sel);
-      return err;
-    }
-
-  return 0;
+  return err;
 }

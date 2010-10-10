@@ -27,63 +27,98 @@
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>
 
+/* free an instance of `struct netnode' */
+void
+free_netnode (struct netnode *nn)
+{
+  free (nn->e->name);
+  free (nn->e->selector);
+  free (nn->e->server);
+  free (nn->e);
+  for (struct node *nd = nn->ents; nd; nd = nd->next)
+    free (nd);
+  free (nn);
+}
+
+/* free an instance of `struct node' */
+void
+free_node (struct node *node)
+{
+  /* XXX possibly take care of cache references */
+  free_netnode (node->nn);
+  free (node);
+}
+
+/* Normalize filename: replace '/' by '-'. */
+char *
+normalize_filename (char *name)
+{
+  char *s = strdup (name);
+
+  for (char *tmp = s; *tmp != '\0'; tmp++)
+    {
+      if (*tmp == '/')
+	*tmp = '-';
+    }
+
+  return s;
+}
+
 /* make an instance of `struct netnode' with the specified parameters,
    return NULL on error */
-struct netnode *
-gopherfs_make_netnode (char type, char *name, char *selector,
-		       char *server, unsigned short port)
+static struct netnode *
+gopherfs_make_netnode (struct gopher_entry *entry,
+		       struct node *dir)
 {
   struct netnode *nn;
 
-  nn = (struct netnode *) malloc (sizeof (struct netnode));
+  if (!entry)
+    return NULL;
+
+  nn = malloc (sizeof (struct netnode));
   if (!nn)
     return NULL;
   memset (nn, 0, sizeof (struct netnode));
-  nn->type = type;
-  nn->name = strdup (name);
-  nn->selector = strdup (selector);
-  nn->server = strdup (server);
-  nn->port = port;
-  nn->ents = NULL;
-  nn->noents = FALSE;
+
+  nn->dir = dir;
+  nn->e = malloc (sizeof (struct gopher_entry));
+  if (!nn->e)
+    {
+      free (nn);
+      return NULL;
+    }
+
+  debug ("Creating entry %s (selector %s, server %s, port %hu)",
+	 entry->name,
+	 entry->selector, entry->server, entry->port);
+  nn->e->name = normalize_filename (entry->name);
+  nn->e->type = entry->type;
+  nn->e->selector = strdup (entry->selector);
+  nn->e->server = strdup (entry->server);
+  nn->e->port = entry->port;
+
   /* XXX init cache references */
 
-  if (!(nn->server && nn->selector && nn->name))
-    { /* We are allowed to free NULL pointers */
-      free (nn->server);
-      free (nn->selector);
-      free (nn->name);
-      free (nn);
+  if (!(nn->e->name && nn->e->selector && nn->e->server))
+    { 
+      /* We are allowed to free NULL pointers */
+      free_netnode (nn);
       return NULL;
     }
   return nn;
 
 }
 
-/* free an instance of `struct netnode' */
-void
-free_netnode (struct netnode *node)
-{
-  struct node *nd;
-
-  free (node->server);
-  free (node->selector);
-  free (node->name);
-  for (nd = node->ents; nd; nd = nd->next)
-    free (nd);
-  free (node);
-}
-
-/* make an instance of `struct node' with the specified parameters,
+/* make an instance of `struct node' in DIR with the parameters in ENTRY.
    return NULL on error */
 struct node *
-gopherfs_make_node (char type, char *name, char *selector,
-		    char *server, unsigned short port)
+gopherfs_make_node (struct gopher_entry *entry,
+		    struct node *dir)
 {
   struct netnode *nn;
   struct node *nd;
 
-  nn = gopherfs_make_netnode (type, name, selector, server, port);
+  nn = gopherfs_make_netnode (entry, dir);
   if (!nn)
     return NULL;
 
@@ -104,7 +139,7 @@ gopherfs_make_node (char type, char *name, char *selector,
 
   /* fill in stat info for the node */
   nd->nn_stat.st_mode = (S_IRUSR | S_IRGRP | S_IROTH) & ~gopherfs->umask;
-  nd->nn_stat.st_mode |= type == GPHR_DIR ? S_IFDIR : S_IFREG;
+  nd->nn_stat.st_mode |= entry->type == GPHR_DIR ? S_IFDIR : S_IFREG;
   nd->nn_stat.st_nlink = 1;
   nd->nn_stat.st_uid = gopherfs->uid;
   nd->nn_stat.st_gid = gopherfs->gid;
@@ -117,13 +152,4 @@ gopherfs_make_node (char type, char *name, char *selector,
 		gopherfs_maptime);
 
   return nd;
-}
-
-/* free an instance of `struct node' */
-void
-free_node (struct node *node)
-{
-  /* XXX possibly take care of cache references */
-  free_netnode (node->nn);
-  free (node);
 }

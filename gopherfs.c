@@ -30,13 +30,8 @@
 #include <hurd/netfs.h>
 
 #include "gopherfs.h"
+#include "fs.h"
 
-/* definition of global config parapeters */
-char *gopherfs_root_server;
-unsigned short gopherfs_root_port;
-char *gopherfs_server_dir;
-
-int debug_flag;
 char *netfs_server_name = GOPHER_SERVER_NAME;
 char *netfs_server_version = GOPHER_SERVER_VERSION;
 struct gopherfs *gopherfs;	/* filesystem global pointer */
@@ -46,11 +41,16 @@ int
 main (int argc, char **argv)
 {
   error_t err;
-  mach_port_t bootstrap;
+  mach_port_t bootstrap, underlying_node;
+  struct stat underlying_stat;
+  struct gopherfs_params *gopherfs_params = malloc (sizeof (struct gopherfs_params));
+  memset (gopherfs_params, 0, sizeof (struct gopherfs_params));
+  if (!gopherfs_params)
+    error (1, errno, "Couldn't create params structure");
 
-  gopherfs_parse_args (argc, argv);
-  if (debug_flag)
-    fprintf (stderr, "pid %d\n", getpid ());
+  // Parse arguments and fill GOPHERFS_PARAMS.
+  gopherfs_parse_args (argc, argv, gopherfs_params);
+  debug ("pid %d", getpid ());
 
   task_get_bootstrap_port (mach_task_self (), &bootstrap);
   if (bootstrap == MACH_PORT_NULL)
@@ -62,38 +62,41 @@ main (int argc, char **argv)
   if (err)
     error (1, err, "Error mapping time.");
 
+  // Create main gopherfs object.
+  err = gopherfs_create (gopherfs_params);
+  if (err)
+    error (1, err, "Couldn't create gopherfs structure");
 
-  /* err = gopherfs_create (...); */
-  /* XXX */
-  gopherfs = (struct gopherfs *) malloc (sizeof (struct gopherfs));
-  if (! gopherfs)
-    error (1, errno, "Cannot allocate gopherfs.");
-
-  gopherfs->umask = 0;
-  gopherfs->uid = getuid ();
-  gopherfs->gid = getgid ();
-  gopherfs->next_inode = 0;
-  gopherfs->root =
-    gopherfs_make_node (GPHR_DIR, "dir", "", gopherfs_root_server,
-			gopherfs_root_port);
-  if (debug_flag)
-    fprintf (stderr, "attaching to %s\n", gopherfs_root_server);
-  /* XXX */
   netfs_root_node = gopherfs->root;
-  netfs_startup (bootstrap, 0);
 
-  if (debug_flag)
-    fprintf (stderr, "entering the main loop\n");
+  underlying_node = netfs_startup (bootstrap, 0);
+
+  err = io_stat (underlying_node, &underlying_stat);
+  if (err)
+    error (1, err, "cannot stat underlying node");
+
+  /* Initialize stat information of the root node.  */
+  netfs_root_node->nn_stat = underlying_stat;
+  netfs_root_node->nn_stat.st_mode =
+    S_IFDIR | (underlying_stat.st_mode & ~S_IFMT & ~S_ITRANS);
+
+  /* If the underlying node isn't a directory, propagate read permission to                                   
+     execute permission since we need that for lookups.  */
+  if (! S_ISDIR (underlying_stat.st_mode))
+    {
+      if (underlying_stat.st_mode & S_IRUSR)
+        netfs_root_node->nn_stat.st_mode |= S_IXUSR;
+      if (underlying_stat.st_mode & S_IRGRP)
+        netfs_root_node->nn_stat.st_mode |= S_IXGRP;
+      if (underlying_stat.st_mode & S_IROTH)
+        netfs_root_node->nn_stat.st_mode |= S_IXOTH;
+    }
+
+  debug("entering the main loop");
+
   for (;;)
-    if (debug_flag)
-      fprintf (stderr, "loop\n");
+    netfs_server_loop ();
 
-  netfs_server_loop ();
-
-  /*NOT REACHED */
-  fprintf (stderr, "Reached, now it will die");
-
-  /*      free (gopherfs); */
   return 0;
 }
 

@@ -1,3 +1,30 @@
+2010-10-09  Manuel Menal  <mmenal@hurdfr.org>
+
+	* args.c: modify -D option to take a filename.
+	(parse_opt): don't hardcode port number, use getservbyname().
+	(parse_opt): check if server address resolves.
+	* debug.c: new file with debugging output functions.
+	* debug.h: new file.
+	* dir.c: new file: separate gopher-specific parts from directory handling.
+	* fs.h: new file.
+	* gopher.c (lookup_host): use getaddrinfo.
+	(open_selector): rename to `gopher_open', changed to use struct gopher_entry.
+	(gopher_list_entries): new function.
+	* gopher.h: new file: gopher client functions and declarations.
+	* gopherfs.c: use a gopherfs object instead of multiple global variables.
+	* gopherfs.h: use only one global variable. Use `struct gopher_entry'.
+	* netfs.c: change to use GNU Coding Standards, like all the other files.
+	(netfs_get_dirents): modify to new `fill_dirnode' syntax.
+	(netfs_attempt_lookup): check for . and .. and fix reference counting.
+	(netfs_attempt_read): use `read' instead of `pread' which won't work on sockets. 
+	(netfs_node_norefs): fix mutex/spinlock handling.
+	* node.c: (free_netnode): adapt to new structure.
+	(free_node): ditto.
+	(normalize_filename): new function.
+	(gopherfs_make_netnode): use `struct gopher_entry'.
+	(gopherfs_make_node): ditto.
+	* TODO: new file.
+
 2005-12-31  Manuel Menal <mmenal@hurdfr.org>
 
 	* Makefile (CFLAGS): Add -D_FILE_OFFSET_BITS=64

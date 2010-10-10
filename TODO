@@ -1,0 +1,13 @@
+* Add caching for contents.
+* Add caching for DNS lookups (no need to call getaddrinfo() for every access).
+* Add support for search servers
+
+Search servers could be implemented with quite simple semantics:
+
+$ echo "keyword" > node
+$ ls node
+keyword
+$ cd node/keyword
+$ ls
+<search results>
+

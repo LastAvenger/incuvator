@@ -42,11 +42,11 @@
    locked on success; no matter what, unlock DIR before returning.  */
 error_t
 netfs_attempt_create_file (struct iouser *user, struct node *dir,
-													 char *name, mode_t mode, struct node **node)
+			   char *name, mode_t mode, struct node **node)
 {
-	*node = NULL;
-	mutex_unlock (&dir->lock);
-	return EROFS;
+  *node = NULL;
+  mutex_unlock (&dir->lock);
+  return EROFS;
 }
 
 /* Node NODE is being opened by USER, with FLAGS.  NEWNODE is nonzero if we
@@ -54,45 +54,49 @@ netfs_attempt_create_file (struct iouser *user, struct node *dir,
    to complete because of a permission restriction. */
 error_t
 netfs_check_open_permissions (struct iouser *user, struct node *node,
-															int flags, int newnode)
+			      int flags, int newnodes)
 {
-	error_t err = 0;
-	if (!err && (flags & O_READ))
-		err = fshelp_access (&node->nn_stat, S_IREAD, user);
-	if (!err && (flags & O_WRITE))
-		err = fshelp_access (&node->nn_stat, S_IWRITE, user);
-	if (!err && (flags & O_EXEC))
-		err = fshelp_access (&node->nn_stat, S_IEXEC, user);
-	return err;
+  debug("Checking permissions on %s", node->nn->e->name);
+  error_t err = 0;
+  if (!err && (flags & O_READ))
+    err = fshelp_access (&node->nn_stat, S_IREAD, user);
+  if (!err && (flags & O_WRITE))
+    err = fshelp_access (&node->nn_stat, S_IWRITE, user);
+  if (!err && (flags & O_EXEC))
+    err = fshelp_access (&node->nn_stat, S_IEXEC, user);
+  return err;
 }
 
 /* This should attempt a utimes call for the user specified by CRED on node
    NODE, to change the atime to ATIME and the mtime to MTIME. */
 error_t
 netfs_attempt_utimes (struct iouser *cred, struct node *node,
-											struct timespec *atime, struct timespec *mtime)
+		      struct timespec *atime, struct timespec *mtime)
 {
-	error_t err = 0;
-	int flags = TOUCH_CTIME;
+  error_t err = 0;
+  int flags = TOUCH_CTIME;
 
-	if (!err)
-		err = fshelp_isowner (&node->nn_stat, cred);
+  debug("Changing atime/mtime for file %s", node->nn->e->name);
 
-	if (!err) {
-		if (atime)
-			node->nn_stat.st_atim = *atime;
-		else
-			flags |= TOUCH_ATIME;
+  if (!err)
+    err = fshelp_isowner (&node->nn_stat, cred);
 
-		if (mtime)
-			node->nn_stat.st_mtim = *mtime;
-		else
-			flags |= TOUCH_MTIME;
+  if (!err) 
+    {
+      if (atime)
+	node->nn_stat.st_atim = *atime;
+      else
+	flags |= TOUCH_ATIME;
 
-		fshelp_touch (&node->nn_stat, flags, gopherfs_maptime);
-	}
+      if (mtime)
+	node->nn_stat.st_mtim = *mtime;
+      else
+	flags |= TOUCH_MTIME;
 
-	return err;
+      fshelp_touch (&node->nn_stat, flags, gopherfs_maptime);
+    }
+
+  return err;
 }
 
 /* Return the valid access types (bitwise OR of O_READ, O_WRITE, and O_EXEC)
@@ -100,27 +104,30 @@ netfs_attempt_utimes (struct iouser *cred, struct node *node,
 error_t
 netfs_report_access (struct iouser *cred, struct node *node, int *types)
 {
-	*types = 0;
-	if (fshelp_access (&node->nn_stat, S_IREAD, cred) == 0)
-		*types |= O_READ;
-	if (fshelp_access (&node->nn_stat, S_IWRITE, cred) == 0)
-		*types |= O_WRITE;
-	if (fshelp_access (&node->nn_stat, S_IEXEC, cred) == 0)
-		*types |= O_EXEC;
+  debug("Reporting access types for file %s", node->nn->e->name);
+  *types = 0;
+  if (fshelp_access (&node->nn_stat, S_IREAD, cred) == 0)
+    *types |= O_READ;
+  if (fshelp_access (&node->nn_stat, S_IWRITE, cred) == 0)
+    *types |= O_WRITE;
+  if (fshelp_access (&node->nn_stat, S_IEXEC, cred) == 0)
+    *types |= O_EXEC;
 
-	return 0;
+  return 0;
 }
 
 /* Trivial definitions.  */
 
 /* Make sure that NP->nn_stat is filled with current information.  CRED
    identifies the user responsible for the operation.  */
-error_t netfs_validate_stat (struct node *node, struct iouser *cred)
+error_t 
+netfs_validate_stat (struct node *node, struct iouser *cred)
 {
-	/* Assume that gopher data is static and will not change for however
-	 * long we keep the cached node. Hence nn_stat is always valid.
-	 * XXX: would be a good idea to introduce a forced refresh call */
-	return 0;
+  debug("Validating stat infos for %s", node->nn->e->name);
+  /* Assume that gopher data is static and will not change for however
+   * long we keep the cached node. Hence nn_stat is always valid.
+   * XXX: would be a good idea to introduce a forced refresh call */
+  return 0;
 }
 
 /* This should sync the file NODE completely to disk, for the user CRED.  If
@@ -128,7 +135,8 @@ error_t netfs_validate_stat (struct node *node, struct iouser *cred)
 error_t
 netfs_attempt_sync (struct iouser *cred, struct node *node, int wait)
 {
-	return 0;
+  debug("Attempting sync on %s", node->nn->e->name);
+  return 0;
 }
 
 #if 0
@@ -150,174 +158,213 @@ netfs_attempt_sync (struct iouser *cred, struct node *node, int wait)
 /* Fetch a directory  */
 error_t
 netfs_get_dirents (struct iouser *cred, struct node *dir,
-									 int first_entry, int max_entries, char **data,
-									 mach_msg_type_number_t *data_len,
-									 vm_size_t max_data_len, int *data_entries)
+		   int first_entry, int max_entries, char **data,
+		   mach_msg_type_number_t *data_len,
+		   vm_size_t max_data_len, int *data_entries)
 {
-	error_t err = 0;
-	struct node *nd;
-	int count;
-	size_t size;
-	char *p;
+  debug("Listing directory entries for %s", dir->nn->e->name);
 
-	if (!dir || dir->nn->type != GPHR_DIR)
-		return ENOTDIR;
+  error_t err = 0;
+  struct node *nd;
+  int count;
+  size_t size;
+  char *p;
 
-	if (!dir->nn->ents && !dir->nn->noents) {
-		mutex_lock (&dir->lock);
-		err = fill_dirnode (dir->nn);
-		mutex_unlock (&dir->lock);
-		if (err)
-			return err;
-	}
+  if (!dir || dir->nn->e->type != GPHR_DIR)
+    return ENOTDIR;
 
-	for (nd = dir->nn->ents; first_entry > 0 && nd; first_entry--, nd=nd->next)
-		;
-	if (!nd)
-		max_entries = 0;
+  if (!dir->nn->ents && !dir->nn->noents)
+    {
+      err = fill_dirnode (dir);
+      if (err)
+	return err;
+    }
 
-	if (max_entries == 0) {
-		*data_len = 0;
-		*data_entries = 0;
-		*data = NULL;
-		return 0;
-	}
+  for (nd = dir->nn->ents; first_entry > 0 && nd; first_entry--, nd=nd->next)
+    ;
+  if (!nd)
+    max_entries = 0;
+
+  if (max_entries == 0) 
+    {
+      *data_len = 0;
+      *data_entries = 0;
+      *data = NULL;
+      return 0;
+    }
 
 #define DIRENTS_CHUNK_SIZE  (8*1024)
-	size = (max_data_len == 0 || max_data_len > DIRENTS_CHUNK_SIZE)
-			? DIRENTS_CHUNK_SIZE
-			: max_data_len;
-	errno = 0;
-	*data = NULL;
-	err = vm_allocate (mach_task_self (), (vm_address_t *)data,
-			size, /*anywhere*/TRUE);
-	if (err)
-		return err;
-	err = vm_protect (mach_task_self (), (vm_address_t)*data, size,
-			/*set_maximum*/FALSE, VM_PROT_READ | VM_PROT_WRITE);
-	if (err)
-		return err;
+  size = (max_data_len == 0 || max_data_len > DIRENTS_CHUNK_SIZE)
+    ? DIRENTS_CHUNK_SIZE
+    : max_data_len;
+  errno = 0;
+  *data = NULL;
+  err = vm_allocate (mach_task_self (), (vm_address_t *)data,
+		     size, /*anywhere*/TRUE);
+  if (err)
+    return err;
+  err = vm_protect (mach_task_self (), (vm_address_t)*data, size,
+		    /*set_maximum*/FALSE, VM_PROT_READ | VM_PROT_WRITE);
+  if (err)
+    return err;
 
-	p = *data;
-	for (count = 0; nd && (max_entries == -1 || count < max_entries); count++) {
+  p = *data;
+  for (count = 0; nd && (max_entries == -1 || count < max_entries); count++) 
+    {
 #define DIRENT_NAME_OFFS offsetof (struct dirent, d_name)
-		vm_address_t addr;
-		struct dirent ent;
+      vm_address_t addr;
+      struct dirent ent;
 
-		ent.d_fileno = nd->nn_stat.st_ino;
-		ent.d_type = IFTODT (nd->nn_stat.st_mode);
-		ent.d_namlen = strlen (nd->nn->name);
-		ent.d_reclen = DIRENT_NAME_OFFS + ent.d_namlen + 1;
-		if (p - *data + ent.d_reclen > size) {
-			size_t extra = ((p - *data + ent.d_reclen - size)/DIRENTS_CHUNK_SIZE + 1)*DIRENTS_CHUNK_SIZE;
-			if (extra + size > max_data_len)
-				break;
-			addr = (vm_address_t) (*data + size);
-			err = vm_allocate (mach_task_self (), &addr, extra, /*anywhere*/FALSE);
-			if (err)
-				break;
-			err = vm_protect (mach_task_self (), (vm_address_t)*data, size,
-					/*set_maximum*/FALSE, VM_PROT_READ | VM_PROT_WRITE);
-			if (err)
-				break;
-			size += extra;
-		}
-		/* copy the dirent structure */
-		memcpy (p, &ent, DIRENT_NAME_OFFS);
-		/* copy ent.d_name */
-		strncpy (p + DIRENT_NAME_OFFS, nd->nn->name, ent.d_namlen);
-		p += ent.d_reclen;
-
-		nd = nd->next;
+      ent.d_fileno = nd->nn_stat.st_ino;
+      ent.d_type = IFTODT (nd->nn_stat.st_mode);
+      ent.d_namlen = strlen (nd->nn->e->name);
+      ent.d_reclen = DIRENT_NAME_OFFS + ent.d_namlen + 1;
+      if (p - *data + ent.d_reclen > size) 
+	{
+	  size_t extra = ((p - *data + ent.d_reclen - size)/DIRENTS_CHUNK_SIZE + 1)*DIRENTS_CHUNK_SIZE;
+	  if (extra + size > max_data_len)
+	    break;
+	  addr = (vm_address_t) (*data + size);
+	  err = vm_allocate (mach_task_self (), &addr, extra, /*anywhere*/FALSE);
+	  if (err)
+	    break;
+	  err = vm_protect (mach_task_self (), (vm_address_t)*data, size,
+			    /*set_maximum*/FALSE, VM_PROT_READ | VM_PROT_WRITE);
+	  if (err)
+	    break;
+	  size += extra;
 	}
-	if (err) {
-		vm_deallocate (mach_task_self (), (vm_address_t)*data, size);
-		*data_len = 0;
-		*data_entries = 0;
-		*data = NULL;
-		return 0;
-	} else {
-		vm_address_t alloc_end = (vm_address_t) (*data + size);
-		vm_address_t real_end = round_page (p);
+      /* copy the dirent structure */
+      memcpy (p, &ent, DIRENT_NAME_OFFS);
+      /* copy ent.d_name */
+      strncpy (p + DIRENT_NAME_OFFS, nd->nn->e->name, ent.d_namlen);
+      p += ent.d_reclen;
 
-		if (alloc_end > real_end)
-			vm_deallocate (mach_task_self (), real_end, alloc_end - real_end);
-		*data_len = p - *data;
-		*data_entries = count;
-	}
-	
-	return 0;
+      nd = nd->next;
+    }
+  
+  if (err) 
+    {
+      vm_deallocate (mach_task_self (), (vm_address_t)*data, size);
+      *data_len = 0;
+      *data_entries = 0;
+      *data = NULL;
+      return 0;
+    } 
+  else 
+    {
+      vm_address_t alloc_end = (vm_address_t) (*data + size);
+      vm_address_t real_end = round_page (p);
+
+      if (alloc_end > real_end)
+	vm_deallocate (mach_task_self (), real_end, alloc_end - real_end);
+      *data_len = p - *data;
+      *data_entries = count;
+    }
+
+  return 0;
 }
 
 /* Lookup NAME in DIR for USER; set *NODE to the found name upon return.  If
    the name was not found, then return ENOENT.  On any error, clear *NODE.
    (*NODE, if found, should be locked, this call should unlock DIR no matter
    what.) */
-error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
-															char *name, struct node ** node)
+error_t 
+netfs_attempt_lookup (struct iouser *user, struct node *dir,
+		      char *name, struct node **node)
 {
-	error_t err;
-	struct node *nd;
+  error_t err = 0;
+  struct node *nd = NULL;
 
-	if (dir->nn->type != GPHR_DIR)
-		err = ENOTDIR;
-	for (nd = dir->nn->ents; nd && strcmp (name, nd->nn->name); nd = nd->next)
-		;
-	if (nd) {
-		mutex_lock (&nd->lock);
-		*node = nd;
-		err = 0;
-	} else
-		err = ENOENT;
+  debug("Looking up %s in dir %s", name, dir->nn->e->name);
 
-	mutex_unlock (&dir->lock);
-	return 0;
+  /* Make sure DIR is an actual directory. */
+  if (dir->nn->e->type != GPHR_DIR)
+    err = ENOTDIR;
+
+  if (strcmp (name, ".") == 0)
+      *node = dir;
+  else if (strcmp (name, "..") == 0)
+    {
+      if (dir->nn->dir)
+	*node = dir->nn->dir;
+      else 
+	/* Root node. */
+	err = EAGAIN; 
+    }
+  else
+    {
+      /* Lookup a regular node. */
+      for (nd = dir->nn->ents; nd && strcmp (name, nd->nn->e->name); nd = nd->next)
+	;
+
+      if (nd)
+	  mutex_lock (&nd->lock);
+      else
+	err = ENOENT;
+
+      *node = nd;
+    }
+
+  /* Add a new reference to *NODE. */
+  if (!err)
+    netfs_nref (*node);
+
+  mutex_unlock (&dir->lock);
+
+  return err;
 }
 
 /* Delete NAME in DIR for USER. */
-error_t netfs_attempt_unlink (struct iouser *user, struct node *dir,
-															char *name)
+error_t 
+netfs_attempt_unlink (struct iouser *user, struct node *dir,
+		      char *name)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Note that in this one call, neither of the specific nodes are locked. */
-error_t netfs_attempt_rename (struct iouser *user, struct node *fromdir,
-		char *fromname, struct node *todir,
-		char *toname, int excl)
+error_t 
+netfs_attempt_rename (struct iouser *user, struct node *fromdir,
+		      char *fromname, struct node *todir,
+		      char *toname, int excl)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to create a new directory named NAME in DIR for USER with mode
    MODE.  */
-error_t netfs_attempt_mkdir (struct iouser *user, struct node *dir,
-														 char *name, mode_t mode)
+error_t 
+netfs_attempt_mkdir (struct iouser *user, struct node *dir,
+		     char *name, mode_t mode)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to remove directory named NAME in DIR for USER. */
-error_t netfs_attempt_rmdir (struct iouser *user,
-														 struct node *dir, char *name)
+error_t 
+netfs_attempt_rmdir (struct iouser *user,
+		     struct node *dir, char *name)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* This should attempt a chmod call for the user specified by CRED on node
    NODE, to change the owner to UID and the group to GID. */
-error_t netfs_attempt_chown (struct iouser *cred, struct node *node,
-														 uid_t uid, uid_t gid)
+error_t 
+netfs_attempt_chown (struct iouser *cred, struct node *node,
+		     uid_t uid, uid_t gid)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* This should attempt a chauthor call for the user specified by CRED on node
    NODE, to change the author to AUTHOR. */
-error_t netfs_attempt_chauthor (struct iouser *cred, struct node *node,
-																uid_t author)
+error_t 
+netfs_attempt_chauthor (struct iouser *cred, struct node *node,
+			uid_t author)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* This should attempt a chmod call for the user specified by CRED on node
@@ -325,33 +372,37 @@ error_t netfs_attempt_chauthor (struct iouser *cred, struct node *node,
    of chmod, this function is also used to attempt to change files into other
    types.  If such a transition is attempted which is impossible, then return
    EOPNOTSUPP.  */
-error_t netfs_attempt_chmod (struct iouser *cred, struct node *node,
-														 mode_t mode)
+error_t 
+netfs_attempt_chmod (struct iouser *cred, struct node *node,
+		     mode_t mode)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to turn NODE (user CRED) into a symlink with target NAME. */
-error_t netfs_attempt_mksymlink (struct iouser *cred, struct node *node,
-																 char *name)
+error_t 
+netfs_attempt_mksymlink (struct iouser *cred, struct node *node,
+			 char *name)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to turn NODE (user CRED) into a device.  TYPE is either S_IFBLK or
    S_IFCHR. */
-error_t netfs_attempt_mkdev (struct iouser *cred, struct node *node,
-														 mode_t type, dev_t indexes)
+error_t 
+netfs_attempt_mkdev (struct iouser *cred, struct node *node,
+		     mode_t type, dev_t indexes)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to set the passive translator record for FILE to ARGZ (of length
    ARGZLEN) for user CRED. */
-error_t netfs_set_translator (struct iouser *cred, struct node *node,
-															char *argz, size_t argzlen)
+error_t 
+netfs_set_translator (struct iouser *cred, struct node *node,
+		      char *argz, size_t argzlen)
 {
-	return EROFS;
+  return EROFS;
 }
 
 #if 0
@@ -360,121 +411,151 @@ error_t netfs_set_translator (struct iouser *cred, struct node *node,
    mode, look up the name of its translator.  Store the name into newly
    malloced storage, and return it in *ARGZ; set *ARGZ_LEN to the total
    length.  */
-error_t netfs_get_translator (struct node *node, char **argz, size_t *argz_len)
+error_t 
+netfs_get_translator (struct node *node, char **argz, size_t *argz_len)
 {
 }
 #endif
 
 /* This should attempt a chflags call for the user specified by CRED on node
    NODE, to change the flags to FLAGS. */
-error_t netfs_attempt_chflags (struct iouser *cred, struct node *node,
-															 int flags)
+error_t 
+netfs_attempt_chflags (struct iouser *cred, struct node *node,
+		       int flags)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* This should attempt to set the size of the file NODE (for user CRED) to
    SIZE bytes long. */
-error_t netfs_attempt_set_size (struct iouser *cred, struct node *node,
-																off_t size)
+error_t 
+netfs_attempt_set_size (struct iouser *cred, struct node *node,
+			off_t size)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* This should attempt to fetch filesystem status information for the remote
    filesystem, for the user CRED. */
-error_t netfs_attempt_statfs (struct iouser *cred, struct node *node,
-			      struct statfs *st)
+error_t 
+netfs_attempt_statfs (struct iouser *cred, struct node *node,
+		      struct statfs *st)
 {
-	return EOPNOTSUPP;
+  return EOPNOTSUPP;
 }
 
 /* This should sync the entire remote filesystem.  If WAIT is set, return
    only after sync is completely finished.  */
-error_t netfs_attempt_syncfs (struct iouser *cred, int wait)
+error_t 
+netfs_attempt_syncfs (struct iouser *cred, int wait)
 {
-	return 0;
+  return 0;
 }
 
 /* Create a link in DIR with name NAME to FILE for USER.  Note that neither
    DIR nor FILE are locked.  If EXCL is set, do not delete the target, but
    return EEXIST if NAME is already found in DIR.  */
-error_t netfs_attempt_link (struct iouser *user, struct node *dir,
-														struct node *file, char *name, int excl)
+error_t 
+netfs_attempt_link (struct iouser *user, struct node *dir,
+		    struct node *file, char *name, int excl)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* Attempt to create an anonymous file related to DIR for USER with MODE.
    Set *NODE to the returned file upon success.  No matter what, unlock DIR. */
-error_t netfs_attempt_mkfile (struct iouser *user, struct node *dir,
-															mode_t mode, struct node ** node)
+error_t 
+netfs_attempt_mkfile (struct iouser *user, struct node *dir,
+		      mode_t mode, struct node ** node)
 {
-	*node = NULL;
-	mutex_unlock (&dir->lock);
-	return EROFS;
+  *node = NULL;
+  mutex_unlock (&dir->lock);
+  return EROFS;
 }
 
 /* maximum numer of symlinks, does not really apply, so set to 0 */
 int netfs_maxsymlinks = 0;
 /* Read the contents of NODE (a symlink), for USER, into BUF. */
-error_t netfs_attempt_readlink (struct iouser *user, struct node *node,
-																char *buf)
+error_t 
+netfs_attempt_readlink (struct iouser *user, struct node *node,
+			char *buf)
 {
-	return EINVAL;
+  return EINVAL;
 }
 
 /* Read from the file NODE for user CRED starting at OFFSET and continuing for
    up to *LEN bytes.  Put the data at DATA.  Set *LEN to the amount
    successfully read upon return.  */
-error_t netfs_attempt_read (struct iouser *cred, struct node *node,
-														off_t offset, size_t *len, void *data)
+error_t 
+netfs_attempt_read (struct iouser *cred, struct node *node,
+		    off_t offset, size_t *len, void *data)
 {
-	error_t err;
-	int remote_fd;
-	ssize_t read_len;
+  int remote_fd;
+  void *buf;
+  ssize_t size;
+  error_t err;
 
-	err = open_selector (node->nn, &remote_fd);
-	if (err)
-		return err;
+  debug("Reading contents of file %s (offset: %d, len: %d)", 
+	node->nn->e->name, offset, *len);
 
-	read_len = pread (remote_fd, data, *len, offset);
-	if (read_len < 0)
-		err = errno;
-	else {
-		*len = (size_t)read_len;
-		err = 0;
-	}
-	
-	return err;
+  err = gopher_open (node->nn->e, &remote_fd);
+  if (err)
+    return err;
+
+  /* We can't seek  into a socket.  Read offset +  *len bytes and then
+     copy only the last *len bytes.*/
+  buf = malloc (offset + *len);
+
+  size = read (remote_fd, buf, *len + offset);
+  if (size < 0)
+    err = errno;
+  else
+    {
+      *len = size - offset;
+      memcpy (data, buf + offset, *len);
+      err = 0;
+    }
+
+  free (buf);
+
+  return err;
 }
 
 /* Write to the file NODE for user CRED starting at OFSET and continuing for up
    to *LEN bytes from DATA.  Set *LEN to the amount seccessfully written upon
    return. */
-error_t netfs_attempt_write (struct iouser *cred, struct node *node,
-														 off_t offset, size_t *len, void *data)
+error_t 
+netfs_attempt_write (struct iouser *cred, struct node *node,
+		     off_t offset, size_t *len, void *data)
 {
-	return EROFS;
+  return EROFS;
 }
 
 /* XXX doesn't say anywhere what this must do */
 #if 0  
 /* The user must define this function.  Create a new user
    from the specified UID and GID arrays. */
-struct iouser *netfs_make_user (uid_t *uids, int nuids,
-				       uid_t *gids, int ngids)
+struct iouser *
+netfs_make_user (uid_t *uids, int nuids,
+				uid_t *gids, int ngids)
 {
 }
 #endif
 
 /* The user must define this function.  Node NP is all done; free
    all its associated storage. */
-void netfs_node_norefs (struct node *np)
+void 
+netfs_node_norefs (struct node *np)
 {
-	mutex_lock (&np->lock);
-	*np->prevp = np->next;
-	np->next->prevp = np->prevp;
-	free_node (np);
-	/* XXX: remove node from tree and delete the cache entry */
+  debug ("No more references for file %s", np->nn->e->name);
+
+  spin_unlock (&netfs_node_refcnt_lock);
+
+  *np->prevp = np->next;
+  np->next->prevp = np->prevp;
+
+  free_node (np);
+
+  /* XXX: remove node from tree and delete the cache entry */
+  spin_lock(&netfs_node_refcnt_lock);
 }
