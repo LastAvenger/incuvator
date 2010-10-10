@@ -4,27 +4,35 @@ set -x
 
 { [ x"$MACHINE" != x ] \
   || read MACHINE; } &&
-. ~/machines/"$MACHINE" &&
+. machines/"$MACHINE" &&
 
-TARGET_MOUNT=/tmp/crosshurd.$MACHINE &&
+tmpdir=$(mktemp -d) &&
+
+TARGET_MOUNT=$tmpdir/target &&
 mkdir "$TARGET_MOUNT" &&
 
 { [ x"$TARGET" != x ] \
   || read TARGET; } &&
 
-# <http://bugs.debian.org/471528>
+# See <http://bugs.debian.org/471528>.
 sudo mkfs.ext2 -F -o hurd -I 128 -b 4096 "$TARGET" &&
 
 sudo mount -t ext2 "$TARGET" "$TARGET_MOUNT" &&
 
-sudo \
-  env http_proxy=http://192.168.10.50:8123/ \
-  /usr/share/crosshurd/makehurddir.sh "$TARGET_MOUNT" i486 gnu &&
+case $SITE in
+  bddebian)
+    # flubber
+    http_proxy=http://192.168.10.50:8123/;;
+esac &&
 
-# <http://bugs.debian.org/533321>
-#sudo sed -i \
-#  -e s%--force-auto-select%% \
-#  "$TARGET_MOUNT"/native-install &&
+if [ x${http_proxy+set} = xset ] \
+   && [ x${no_use_http_proxy+set} != xset ]; then
+  env_http_proxy="env http_proxy=$http_proxy"
+fi &&
+sudo \
+  $env_http_proxy \
+  /usr/share/crosshurd/makehurddir.sh "$TARGET_MOUNT" i486 gnu &&
+unset env_http_proxy &&
 
 # We have our own /etc/fstab.
 sudo sed -i \
@@ -43,7 +51,7 @@ umask 022 &&
 
 # Needed for dpkg.
 { test -c /servers/socket/1 \
-    || settrans -c /servers/socket/1 /hurd/pflocal; } &&
+  || settrans -c /servers/socket/1 /hurd/pflocal; } &&
 
 # Do not configure debconf, only unpack it.
 dpkg --unpack --force-depends /var/cache/apt/archives/debconf_*.deb &&
@@ -61,8 +69,8 @@ libpam-runtime	libpam-runtime/conflicts	error
 EOS
 
 ( cd /dev &&
-  MAKEDEV \
-    $DISK_ROOT $DISK_SWAP ) &&
+  MAKEDEV $DISK_ROOT $DISK_SWAP $DISK_DATA $DISK_DATA_LOCAL $DISK_VAR
+) &&
 
 # Already enable swap up here.
 mkswap.linux -v1 /dev/$DISK_SWAP &&
@@ -143,13 +151,9 @@ packages='
   libtool
   libtool-doc
   make-doc
-  g++-4.1
-  g++-4.3
   g++-4.4
-  gcc-4.1-doc
-  gcc-4.3-doc
-  cpp-4.1-doc
-  cpp-4.3-doc
+  gcc-4.4-doc
+  cpp-4.4-doc
   gdb
   gdb-doc
   hurd-dbg
@@ -158,11 +162,12 @@ packages='
   glibc-doc-reference
   manpages-dev
   mig
+  bzr bzr-doc
   cvs
   darcs
-  git-core
-  gnu-standards
+  git
   subversion
+  gnu-standards
   bc
   bzip2
   devscripts
@@ -206,10 +211,11 @@ packages=\$packages'
 ' &&
 
 # emacs (emacs23) isn't installable yet.
-packages=\$packages'
-  emacs-
-  emacs22
-' &&
+# In fact, no emacs version's packages are installable at the moment...
+#packages=\$packages'
+#  emacs-
+#  emacs22
+#' &&
 
 apt-get -y --force-yes install \$packages &&
 
@@ -230,6 +236,7 @@ fi <<"EOS" &&
 %sudo	ALL=(ALL) ALL
 EOS
 
+# TODO: should soon be fixed; patch has been posted to bug-hurd IIRC.
 { ed /etc/ssh/sshd_config || :; } <<"EOC"
 /^UsePrivilegeSeparation/
 s/yes/no/
@@ -239,13 +246,16 @@ EOF_INSTALL_PACKAGES
 
 sudo chmod +x "$TARGET_MOUNT"/install-packages &&
 
+
 sudo dd of="$TARGET_MOUNT"/etc/hostname <<EOF &&
 $QUALIFIED_HOSTNAME
 EOF
 
 h=$(expr "$QUALIFIED_HOSTNAME" : '\([^\.]*\)') &&
-sudo dd of="$TARGET_MOUNT"/etc/hosts <<"EOF" &&
-127.0.0.1	$QUALIFIED_HOSTNAME $h localhost
+sudo dd of="$TARGET_MOUNT"/etc/hosts <<EOF &&
+$NET_IP_ADDRESS	$QUALIFIED_HOSTNAME $h 
+
+127.0.0.1	localhost
 
 ::1	localhost ip6-localhost ip6-loopback
 fe00::0	ip6-localnet
@@ -256,26 +266,56 @@ ff02::3	ip6-allhosts
 EOF
 unset h &&
 
+
 sudo dd of="$TARGET_MOUNT"/etc/fstab <<EOF &&
 /dev/$DISK_ROOT / ext2 rw 1 1
 /dev/$DISK_SWAP none swap sw 0 0
-#/dev/... /media/data ext2 rw 1 2
 EOF
+if [ x${DISK_DATA+set} = xset ]; then
+  sudo mkdir -p "$TARGET_MOUNT"/media/data &&
+  sudo dd of="$TARGET_MOUNT"/etc/fstab conv=notrunc oflag=append <<EOF
+/dev/$DISK_DATA /media/data ext2 rw 1 2
+EOF
+fi &&
+if [ x${DISK_DATA_LOCAL+set} = xset ]; then
+  sudo mkdir -p "$TARGET_MOUNT"/media/data-local &&
+  sudo dd of="$TARGET_MOUNT"/etc/fstab conv=notrunc oflag=append <<EOF
+/dev/$DISK_DATA_LOCAL /media/data-local ext2 rw 1 2
+EOF
+fi &&
+if [ x${DISK_VAR+set} = xset ]; then
+  sudo mkdir -p "$TARGET_MOUNT"/media/var &&
+  sudo dd of="$TARGET_MOUNT"/etc/fstab conv=notrunc oflag=append <<EOF
+/dev/$DISK_VAR /media/var ext2 rw 1 2
+EOF
+fi &&
+
 
 sudo ln -sf /usr/share/zoneinfo/Etc/UTC "$TARGET_MOUNT"/etc/localtime &&
 
-sudo dd of="$TARGET_MOUNT"/etc/apt/apt.conf <<"EOF" &&
-Acquire::http::Proxy "http://192.168.10.50:8123/";
-EOF
 
-sudo dd of="$TARGET_MOUNT"/etc/apt/sources.list <<"EOF" &&
-deb http://ftp.us.debian.org/debian unstable main non-free
-deb-src http://ftp.us.debian.org/debian unstable main non-free
-#deb http://ftp.us.debian.org/debian experimental main non-free
-#deb-src http://ftp.us.debian.org/debian experimental main non-free
+if [ x${http_proxy+set} = xset ]; then
+  sudo dd of="$TARGET_MOUNT"/etc/apt/apt.conf <<EOF
+Acquire::http::Proxy "$http_proxy";
+EOF
+fi &&
+
+
+case $SITE in
+  bddebian)
+    mirror=.us;;
+esac &&
+sudo dd of="$TARGET_MOUNT"/etc/apt/sources.list <<EOF &&
+deb http://ftp$mirror.debian.org/debian unstable main non-free
+deb-src http://ftp$mirror.debian.org/debian unstable main non-free
+#deb http://ftp$mirror.debian.org/debian experimental main non-free
+#deb-src http://ftp$mirror.debian.org/debian experimental main non-free
 
 deb http://ftp.debian-ports.org/debian unreleased main
 deb-src http://ftp.debian-ports.org/debian unreleased main
 EOF
+unset mirror &&
 
-sudo ln -sf crash-kill "$TARGET_MOUNT"/servers/crash
+
+: sudo umount "$TARGET_MOUNT" &&
+: sudo rm -rf "$tmpdir"
