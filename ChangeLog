@@ -1,3 +1,8 @@
+2010-10-12  Manuel Menal  <mmenal@hurdfr.org>
+
+	* netfs.c (netfs_attempt_read): try reading until the requested amount
+	or EOF is reached. Close file descriptor.
+
 2010-10-09  Manuel Menal  <mmenal@hurdfr.org>
 
 	* args.c: modify -D option to take a filename.

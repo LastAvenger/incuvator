@@ -488,34 +488,39 @@ netfs_attempt_readlink (struct iouser *user, struct node *node,
    successfully read upon return.  */
 error_t 
 netfs_attempt_read (struct iouser *cred, struct node *node,
-		    off_t offset, size_t *len, void *data)
+		    loff_t offset, size_t *len, void *data)
 {
   int remote_fd;
   void *buf;
-  ssize_t size;
-  error_t err;
+  ssize_t size, total_size = 0;
+  error_t err = 0;
 
-  debug("Reading contents of file %s (offset: %d, len: %d)", 
+  debug("Reading contents of file %s (offset: %qd, *len: %d)", 
 	node->nn->e->name, offset, *len);
 
   err = gopher_open (node->nn->e, &remote_fd);
   if (err)
     return err;
 
-  /* We can't seek  into a socket.  Read offset +  *len bytes and then
-     copy only the last *len bytes.*/
   buf = malloc (offset + *len);
 
-  size = read (remote_fd, buf, *len + offset);
+  /* Read until the requested amount of data or EOF is reached. */
+  do 
+    {
+      size = read (remote_fd, buf + total_size, offset + *len);
+      total_size += size;
+    }
+  while (size > 0 && total_size < offset + *len);
+
   if (size < 0)
     err = errno;
   else
     {
-      *len = size - offset;
+      *len = total_size - offset;
       memcpy (data, buf + offset, *len);
-      err = 0;
     }
 
+  close (remote_fd);
   free (buf);
 
   return err;
