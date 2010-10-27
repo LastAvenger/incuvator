@@ -130,7 +130,7 @@ locales	locales/default_environment_locale	select	None
 locales	locales/locales_to_be_generated	multiselect	en_US.UTF-8 UTF-8
 man-db	man-db/install-setuid	boolean	false
 nullmailer	nullmailer/adminaddr	string	thomas@schwinge.name
-nullmailer	nullmailer/relayhost	string	mail.schwinge.homeip.net qmqp
+nullmailer	nullmailer/relayhost	string	schwinge.homeip.net qmqp
 nullmailer	shared/mailname	string	$QUALIFIED_HOSTNAME
 popularity-contest	popularity-contest/participate	boolean	true
 tex-common	tex-common/managecache	boolean	false
