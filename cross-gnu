@@ -282,6 +282,9 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --enable-languages=c,c++ \
     --with-arch=i686
 fi &&
+# ``The directory that should contain system headers does not exist:
+# $SYS_ROOT/usr/include''.
+mkdir -p "$SYS_ROOT"/usr/include &&
 "$MAKE" \
   all &&
 # Remove the bogus libgcc_eh, libgcc and libgcov that may have been installed
