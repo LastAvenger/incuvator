@@ -80,6 +80,9 @@ cd "$GCC_SRC".obj &&
 if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
   if ./config.status --version > /dev/null 2>&1; then :; else
     # TODO.  Why ``--with-newlib''?
+    # TODO.  Decimal float support (``--disable-decimal-float'') is manually
+    # deactivated, as there is no fenv.h yet (glibc), and there is no autoconf
+    # test for its presence.
     "$GCC_SRC"/configure \
       --target="$TARGET" \
       --prefix="$ROOT" \
@@ -89,6 +92,7 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
       --disable-threads \
       --without-headers \
       --with-newlib \
+      --disable-decimal-float \
       --enable-languages=c \
       --with-arch=i686
   fi &&
