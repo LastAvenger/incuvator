@@ -143,17 +143,9 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --host="$TARGET" \
     --prefix=
 fi &&
-if grep -q install-data "$GNUMACH_SRC"/Makefile.in; then
-  "$MAKE" \
-    DESTDIR="$SYS_ROOT" \
-    install-data
-else
-  # Old.
-  "$MAKE" \
-    prefix="$SYS_ROOT" \
-    no_deps=t \
-    install-headers
-fi &&
+"$MAKE" \
+  DESTDIR="$SYS_ROOT" \
+  install-data &&
 
 
 # Install a cross GNU MIG.
