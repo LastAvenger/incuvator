@@ -181,7 +181,8 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   "$HURD_SRC"/configure \
     --host="$TARGET" \
     --prefix= \
-    --disable-profile
+    --disable-profile \
+    --without-parted
 fi &&
 "$MAKE" \
   prefix="$SYS_ROOT" \
@@ -241,7 +242,8 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   "$HURD_SRC"/configure \
     --host="$TARGET" \
     --prefix= \
-    --disable-profile
+    --disable-profile \
+    --without-parted
 fi &&
 "$MAKE" \
   libihash &&
