@@ -1,10 +1,11 @@
 #!/bin/sh
 
-# Cross compile a GNU build environment.
+# Cross compile a GNU build environment,
+# <http://www.gnu.org/software/hurd/toolchain/cross-gnu.html>.
 
-# Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
 
-# Written by Thomas Schwinge <tschwinge@gnu.org>.
+# Written by Thomas Schwinge <thomas@schwinge.name>.
 
 # This file is part of the GNU Hurd.
 #
@@ -22,10 +23,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# See <http://www.gnu.org/software/hurd/hurd/building/cross-compiling.html> for
-# usage information.
-
-
 # There are several parts marked with `TODO' in this file; feel free to have a
 # look at these issues and send the outcome back to me.
 
@@ -34,8 +31,8 @@
 
 if [ x"${CROSS_GNU_REINSTALL_GLIBC-not_set}" = xnot_set ]; then
   cat >&2 <<"EOT" &&
-See <http://www.gnu.org/software/hurd/hurd/building/cross-compiling.html> for
-usage information.
+See <http://www.gnu.org/software/hurd/toolchain/cross-gnu.html> for usage
+information.
 EOT
   exit 100
 EOF

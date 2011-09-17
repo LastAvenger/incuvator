@@ -1,10 +1,11 @@
 #!/bin/sh
 
-# Cross compile a GNU build environment.
+# Cross compile a GNU build environment,
+# <http://www.gnu.org/software/hurd/toolchain/cross-gnu.html>.
 
-# Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
 
-# Written by Thomas Schwinge <tschwinge@gnu.org>.
+# Written by Thomas Schwinge <thomas@schwinge.name>.
 
 # This file is part of the GNU Hurd.
 #
@@ -20,10 +21,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
-# See <http://www.gnu.org/software/hurd/hurd/building/cross-compiling.html> for
-# usage information.
 
 
 # Functions from Paul Jarc's prjlibs available at
