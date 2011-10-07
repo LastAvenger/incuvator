@@ -197,6 +197,7 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
     # TODO: --disable-multi-arch
     "$GLIBC_SRC"/configure \
+      AUTOCONF=: \
       --without-cvs \
       --build="$("$GLIBC_SRC"/scripts/config.guess)" \
       --host="$TARGET" \
@@ -295,6 +296,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
   # TODO: --disable-multi-arch
   "$GLIBC_SRC"/configure \
+    AUTOCONF=: \
     --without-cvs \
     --build="$("$GLIBC_SRC"/scripts/config.guess)" \
     --host="$TARGET" \
