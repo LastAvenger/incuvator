@@ -162,7 +162,7 @@ fi &&
   install &&
 
 
-# Install the GNU Hurd's header files.
+# Install the GNU Hurd's core libraries' header files.
 
 mkdir -p "$HURD_SRC".obj &&
 cd "$HURD_SRC".obj &&
@@ -180,8 +180,28 @@ fi &&
   prefix="$SYS_ROOT" \
   no_deps=t \
   install-headers &&
-# Below, we will reconfigure for allowing to build the pthreads library.
+# Below, we will reconfigure for allowing to build libpthread.
 if grep -q '^CC = gcc$' config.make
+then rm config.status
+else :
+fi &&
+
+mkdir -p "$LIBPTHREAD_SRC".obj &&
+cd "$LIBPTHREAD_SRC".obj &&
+if ./config.status --version > /dev/null 2>&1; then :; else
+  # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
+  # needed either.
+  CC=gcc \
+  "$LIBPTHREAD_SRC"/configure \
+    --host="$TARGET" \
+    --prefix= \
+    ac_cv_lib_ihash_hurd_ihash_create=yes
+fi &&
+"$MAKE" \
+  DESTDIR="$SYS_ROOT" \
+  install-data-local-headers &&
+# Below, we will reconfigure for allowing to build libpthread.
+if grep -q '^CC = gcc$' Makefile
 then rm config.status
 else :
 fi &&
