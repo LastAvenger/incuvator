@@ -206,9 +206,13 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
       --disable-profile \
       --disable-multi-arch
   fi &&
+  # Set an invalid/obfuscated install_root in order to work around the
+  # ``/usr/include/pthread.h overwrite issue''; see open_issues/glibc.
   if "$MAKE" \
-       install_root="$SYS_ROOT" \
-       all \
+       install_root=/INVALID \
+       all &&
+     "$MAKE" \
+       install_root=/"$SYS_ROOT" \
        install
   then
     # TODO: Why doesn't `make install' do that?
@@ -305,9 +309,13 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --disable-profile \
     --disable-multi-arch
 fi &&
+# Set an invalid/obfuscated install_root in order to work around the
+# ``/usr/include/pthread.h overwrite issue''; see open_issues/glibc.
 "$MAKE" \
-  install_root="$SYS_ROOT" \
-  all \
+  install_root=/INVALID \
+  all &&
+"$MAKE" \
+  install_root=/"$SYS_ROOT" \
   install &&
 
 
