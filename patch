@@ -1,0 +1,20 @@
+--- dde/e1000e/netdev.c.orig	2012-02-24 03:45:47.000000000 +0000
++++ dde/e1000e/netdev.c	2012-02-24 03:45:52.000000000 +0000
+@@ -5217,7 +5217,7 @@
+  * e1000_init_module is the first routine called when the driver is
+  * loaded. All it does is register with the PCI subsystem.
+  **/
+-static int __init e1000_init_module(void)
++static int __init e1000e_init_module(void)
+ {
+ 	int ret;
+ 	printk(KERN_INFO "%s: Intel(R) PRO/1000 Network Driver - %s\n",
+@@ -5230,7 +5230,7 @@
+ 				
+ 	return ret;
+ }
+-module_init(e1000_init_module);
++module_init(e1000e_init_module);
+ 
+ /**
+  * e1000_exit_module - Driver Exit Cleanup Routine

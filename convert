@@ -1,0 +1,6 @@
+#!/bin/bash
+N=$(grep -n "#include" "$1" | tail -n 1 | cut -d : -f 1)
+[ -n "$N" ] || N=0
+head -n $N "$1"
+echo "#include <ddekit/timer.h>"
+tail -n +$(($N+1)) "$1"

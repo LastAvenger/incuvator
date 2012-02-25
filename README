@@ -1,0 +1,4 @@
+linux-2.6.29.6 is a mere copy of the drivers/net/ directory of the upstream
+source, with just Kconfig and Makefile removed. Upgrading to a newer version
+is a matter of unpacking a newer version, changing VERSION in the root
+Makefile, and possibly add some sources to the blacklist.
