@@ -24,7 +24,7 @@ BLACKLIST = \
 	    \
 	    $(SRC)/netx-eth.c $(SRC)/smc911x.c $(wildcard $(SRC)/irda/*) \
 	    $(wildcard $(SRC)/arm/*.c) $(SRC)/bfin_mac.c \
-	    $(SRC)/declance.c $(wildcard $(SRC)/ehea/*) $(SRC)/lib82596.c $(SRC)/lasi_82596.c \
+	    $(SRC)/declance.c $(wildcard $(SRC)/ehea/*) $(wildcard $(SRC)/*82596.c) \
 	    $(wildcard $(SRC)/atlx/*) $(SRC)/pasemi_mac_ethtool.c \
 	    $(wildcard $(SRC)/wireless/*) $(wildcard $(SRC)/wireless/*/*) \
 	    $(SRC)/apne.c \
@@ -46,8 +46,11 @@ BLACKLIST = \
 	    $(wildcard $(SRC)/wan/*) \
 	    $(wildcard $(SRC)/wan/*/*) \
 	    $(wildcard $(SRC)/cris/*) \
+	    $(wildcard $(SRC)/fs_enet/*) \
+	    $(wildcard $(SRC)/arcnet/*) \
+	    $(wildcard $(SRC)/benet/*) \
 	    $(wildcard $(SRC)/arc$(SRC)/*) \
-	    $(SRC)/lib8390.c $(SRC)/mv643xx_eth.c $(SRC)/pasemi_mac.c $(SRC)/ibmveth.c \
+	    $(SRC)/mv643xx_eth.c $(SRC)/pasemi_mac.c $(SRC)/ibmveth.c \
 	    $(wildcard $(SRC)/ps3*) \
 	    $(SRC)/iseries_veth.c $(SRC)/cpmac.c $(SRC)/ixgbe/ixgbe_dcb_nl.c \
 	    $(wildcard $(SRC)/ucc_geth*) \
@@ -90,11 +93,12 @@ BLACKLIST = \
 	    \
 	    $(wildcard $(SRC)/tulip/*)
 
+NO_BUILD = dde/lib8390.c
 
 SRC_ORIG := $(filter-out $(BLACKLIST),$(shell find $(SRC) -name \*.c))
 SRC_TARGET := $(patsubst $(SRC)/%,dde/%,$(SRC_ORIG))
 
-SRC_C		+= $(SRC_TARGET)
+SRC_C		+= $(filter-out $(NO_BUILD),$(SRC_TARGET))
 
 .PHONY: convert
 convert:
@@ -104,15 +108,12 @@ convert:
 		mkdir -p "$$(dirname "$$TARGET")" ; \
 		./convert "$$i" > "$$TARGET"; \
 	done
-	cd dde ; patch -p1 < ../patch
-
-.PHONY: headers
-headers:
 	for i in $$(find $(SRC) -name \*.h) ; do \
 		TARGET="dde/$${i#$(SRC)/}" ; \
 		mkdir -p "$$(dirname "$$TARGET")" ; \
 		ln -f "$$i" "$$TARGET" ; \
 	done
+	cd dde ; patch -p1 < ../patch
 
 klean: clean
 	rm -fr dde
