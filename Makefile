@@ -3,7 +3,7 @@ L4DIR         ?= $(PKGDIR)
 
 include Makeconf.local
 
-TARGET         = dde_all
+TARGET         = netdde
 
 SRC_C          = main.c
 
