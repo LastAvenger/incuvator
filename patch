@@ -18,3 +18,14 @@
  
  /**
   * e1000_exit_module - Driver Exit Cleanup Routine
+--- dde/phy/mdio_bus.c.orig	2012-02-26 00:14:07.000000000 +0000
++++ dde/phy/mdio_bus.c	2012-02-26 00:14:08.000000000 +0000
+@@ -99,7 +99,7 @@
+ 	bus->dev.parent = bus->parent;
+ 	bus->dev.class = &mdio_bus_class;
+ 	bus->dev.groups = NULL;
+-	dev_set_name(&bus->dev, bus->id);
++	dev_set_name(&bus->dev, "%s", bus->id);
+ 
+ 	err = device_register(&bus->dev);
+ 	if (err) {
