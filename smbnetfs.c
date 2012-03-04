@@ -59,7 +59,7 @@ struct netnode
 static struct netnode  *nodes;
 
 /* Free the memory used by the nodes.  */
-void
+static void
 clear_nodes ()
 {
   if (!nodes)
@@ -83,7 +83,7 @@ clear_nodes ()
   nodes = 0;
 }
 
-void
+static void
 append_node_to_list (struct netnode *n)
 {
   n->next = nodes;
@@ -91,7 +91,7 @@ append_node_to_list (struct netnode *n)
 }
 
 /* Create a new node and initialize it with default values.  */
-int
+static int
 create_node (struct node **node)
 {
   struct netnode *n = malloc (sizeof (struct netnode));
@@ -109,7 +109,7 @@ create_node (struct node **node)
   return 0;
 }
 
-struct netnode *
+static struct netnode *
 search_node (char *filename, struct node *dir)
 {
   struct netnode *pt = nodes;
@@ -126,7 +126,7 @@ search_node (char *filename, struct node *dir)
   return 0;
 }
 
-void
+static void
 remove_node (struct node *np)
 {
   struct netnode *pt;
@@ -152,7 +152,7 @@ remove_node (struct node *np)
     }
 }
 
-void
+static void
 create_root_node ()
 {
   struct node *node;
@@ -170,7 +170,7 @@ create_root_node ()
   }
 
 
-int
+static int
 add_node (char *filename, struct node *top ,struct netnode** nn)
 {
   int err;
@@ -228,6 +228,8 @@ empty_stat (struct iouser *cred)
 {
   struct stat st;
 
+  st.st_fstype = FSTYPE_MISC;
+  st.st_fsid = getpid ();
   st.st_ino = 0;
   st.st_dev = st.st_rdev = 0;
   st.st_size = 0;
@@ -242,6 +244,7 @@ empty_stat (struct iouser *cred)
   return st;
 }
 
+
 error_t
 netfs_validate_stat (struct node * np, struct iouser *cred)
 {
