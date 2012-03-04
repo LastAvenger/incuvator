@@ -22,8 +22,9 @@
 #include "smb.h"
 #include <stdio.h>
 
-static char doc[] = "smbfs - smb filesystem translator" \
-    "\vSHARE Specify the resource in the form smb://[WORKGROUP/]HOST/SHARE";
+static char doc[] = "smbfs - SMB file system translator" \
+  "\vSHARE specifies an SMB directory in the form "
+  "`smb://[WORKGROUP/]HOST/SHARE'.";
 static char args_doc[] = "SHARE";
 
 
@@ -32,11 +33,11 @@ extern void smbfs_init ();
 extern void smbfs_terminate ();
 static struct argp_option options[] = 
 {
-	{"server",'s',"SERVER",0,"server samba"},
-	{"resource",'r',"RESOURCE",0,"resource to access"},
-	{"password",'p',"PWD",0,"password to use"},
-	{"username",'u',"USR",0,"username to use"},
-	{"workgroup",'w',"WKG",0,"workgroup to use"},
+	{"server",'s',"SERVER",0, "SMB server"},
+	{"resource",'r',"RESOURCE",0, "directory to access"},
+	{"password",'p',"PWD",0, "password to use (default: empty password)"},
+	{"username",'u',"USR",0, "user name to use (default: `$USER')"},
+	{"workgroup",'w',"WKG",0, "workgroup to use (default: `WORKGROUP')"},
 	{0}
 };
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
@@ -76,27 +77,24 @@ main (int argc, char *argv[])
   mach_port_t bootstrap;
   int err;
 
-  credentials.server = 0;
-  credentials.share = 0;
-  credentials.workgroup = 0;
-  credentials.username = 0;
-  credentials.password = 0;
+  /* Default user name.  */
+  credentials.username = getenv ("USER");
 
-  argp_parse(&smb_argp, argc, argv, 0, 0, &credentials);
+  argp_parse (&smb_argp, argc, argv, 0, 0, &credentials);
 
   if(!credentials.server  || !credentials.share || !credentials.workgroup
      || !credentials.username || !credentials.password)
-    error (EXIT_FAILURE, EINVAL, "You must specify server - share - workgroup - username "
-           " - password !!!\n");
+    error (EXIT_FAILURE, 0, "Please specify a server, share, workgroup, "
+	   "user name, and password.");
+
+  err = init_smb ();
+
+  if (err < 0)
+    error (EXIT_FAILURE, errno, "failed to initialize SMB client");
 
   task_get_bootstrap_port (mach_task_self (), &bootstrap);
   if (bootstrap == MACH_PORT_NULL)
-    error (EXIT_FAILURE, errno, "You need to run this as a translator!");
-
-  err = init_smb ();  
-
-  if (err < 0)
-    error (EXIT_FAILURE, errno, "Error init_smb\n");
+    error (EXIT_FAILURE, 0, "Must be started as a translator.");
 
   netfs_init();
   netfs_startup(bootstrap, 0);

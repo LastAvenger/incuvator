@@ -35,7 +35,12 @@
 #define DIRENT_LEN(name_len)    ((DIRENT_NAME_OFFS + (name_len) + 1 \
                                + (DIRENT_ALIGN - 1)) & ~(DIRENT_ALIGN - 1))
 
-struct smb_credentials credentials;
+struct smb_credentials credentials =
+  {
+    .workgroup = "WORKGROUP",
+    .password = ""
+  };
+
 static volatile struct mapped_time_value *maptime;
 static struct mutex smb_mutex;
 
