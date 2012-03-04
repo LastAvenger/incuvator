@@ -1,6 +1,8 @@
 /*
   Copyright (C) 1997, 2002, 2004, 2007, 2009 Free Software Foundation, Inc.
   Copyright (C) 2004, 2007, 2009 Giuseppe Scrivano.
+  Copyright (C) 2012 Ludovic Courtès <ludo@gnu.org>
+
   Written by Giuseppe Scrivano <gscrivano@gnu.org>
 
   This program is free software; you can redistribute it and/or
@@ -158,16 +160,14 @@ create_root_node ()
   struct node *node;
   int err = create_node (&node);
   if (err)
-    return;  
+    return;
+
   netfs_root_node = node;
   node->nn->parent = 0;
-  node->nn->filename = malloc (strlen (credentials.share) + 1);
-  if (node->nn->filename)
-    strcpy (node->nn->filename, credentials.share);
-  
+  node->nn->filename = strdup (credentials.share);
+
   netfs_validate_stat (node, 0);
-  
-  }
+}
 
 
 static int
@@ -196,11 +196,7 @@ add_node (char *filename, struct node *top ,struct netnode** nn)
   else
     n->parent = 0;
 
-  n->filename = malloc ( strlen(top->nn->filename) + strlen (filename) + 1);
-  if (!n->filename)
-    return 0;
-
-  sprintf (n->filename, "%s/%s", top->nn->filename, filename);
+  asprintf (&n->filename, "%s/%s", top->nn->filename, filename);
 
   mutex_lock (&smb_mutex);  
   err = smbc_stat (n->filename, &st);
@@ -470,17 +466,12 @@ netfs_attempt_unlink (struct iouser * user, struct node * dir, char *name)
   char *filename;
 
   if (dir->nn->filename)
-    filename = malloc (strlen (dir->nn->filename) + strlen (name) + 2);
+    asprintf (&filename, "%s/%s", dir->nn->filename, name);
   else
-    filename = malloc (strlen (credentials.share) + strlen (name) + 1);
+    asprintf (&filename, "%s/%s", credentials.share, name);
 
   if (!filename)
     return ENOMEM;
-
-  if (dir->nn->filename)
-    sprintf (filename, "%s/%s", dir->nn->filename,  name);
-  else
-    sprintf (filename, "%s/%s", credentials.share, name);
 
   mutex_lock (&smb_mutex);
   error_t err = smbc_unlink (filename);
@@ -503,33 +494,23 @@ netfs_attempt_rename (struct iouser * user, struct node * fromdir,
   char *filename2;		/* Destination file name.  */
 
   if (fromdir->nn->filename)
-    filename = malloc (strlen (fromdir->nn->filename) + strlen (fromname) + 2);
+    asprintf (&filename, "%s/%s", fromdir->nn->filename,fromname);
   else
-    filename = malloc (strlen (credentials.share) + strlen (fromname) + 1);
+    asprintf (&filename, "%s/%s", credentials.share, fromname);
 
   if (!filename)
     return ENOMEM;
 
   if (todir->nn->filename)
-    filename2 =malloc (strlen (todir->nn->filename) + strlen (toname) + 2);
+    asprintf (&filename2, "%s/%s", todir->nn->filename, toname);
   else
-    filename2 = malloc (strlen (credentials.share) + strlen (toname) + 1);
+    asprintf (&filename2, "%s/%s", credentials.share, toname);
 
   if (!filename2)
     {
       free (filename);
       return ENOMEM;
     }
-
-  if (fromdir->nn->filename)
-    sprintf (filename, "%s/%s", fromdir->nn->filename,fromname);
-  else
-    sprintf (filename, "%s/%s", credentials.share, fromname);
-
-  if (todir->nn->filename)
-    sprintf (filename, "%s/%s", todir->nn->filename, toname);
-  else
-    sprintf (filename, "%s/%s", credentials.share, toname);
 
   mutex_lock (&smb_mutex);
   error_t err = smbc_rename (filename, filename2);
@@ -548,16 +529,12 @@ netfs_attempt_mkdir (struct iouser * user, struct node * dir, char *name,
   error_t err;
 
   if (dir->nn->filename)
-    filename = malloc (strlen (dir->nn->filename) + strlen (name) + 2);
+    asprintf (&filename, "%s/%s", dir->nn->filename,name);
   else
-    filename = malloc (strlen (credentials.share) + strlen (name) + 1);
+    asprintf (&filename, "%s/%s", credentials.share, name);
+
   if (!filename)
     return ENOMEM;
-
-  if (dir->nn->filename)
-    sprintf (filename, "%s/%s", dir->nn->filename,name);
-  else
-    sprintf (filename, "%s/%s", credentials.share, name);
 
   mutex_lock (&smb_mutex);
   err = smbc_mkdir (filename, mode);
@@ -574,16 +551,12 @@ netfs_attempt_rmdir (struct iouser * user, struct node * dir, char *name)
   error_t err;
 
   if (dir->nn->filename)
-    filename = malloc (strlen (dir->nn->filename) +strlen (name) + 2);
+    asprintf (&filename, "%s/%s", dir->nn->filename,    name);
   else
-    filename = malloc (strlen (credentials.share) + strlen (name) + 1);
+    asprintf (&filename, "%s/%s", credentials.share, name);
+
   if (!filename)
     return ENOMEM;
-
-  if (dir->nn->filename)
-    sprintf (filename, "%s/%s", dir->nn->filename,    name);
-  else
-    sprintf (filename, "%s/%s", credentials.share, name);
 
   mutex_lock (&smb_mutex);
   err = smbc_rmdir (filename);
@@ -619,19 +592,15 @@ netfs_attempt_create_file (struct iouser * user, struct node * dir,
   *np = 0;
 
   if (dir->nn->filename)
-    filename = malloc ( strlen (dir->nn->filename) +strlen (name) + 2);
+    asprintf (&filename, "%s/%s", dir->nn->filename,name);
   else
-    filename = malloc (strlen (credentials.share) + strlen (name) + 1);
+    asprintf (&filename, "%s/%s", credentials.share, name);
+
   if (!filename)
     return ENOMEM;
 
-  if (dir->nn->filename)
-    sprintf (filename, "%s/%s", dir->nn->filename,name);
-  else
-    sprintf (filename, "%s/%s", credentials.share, name);
-
   mutex_lock (&smb_mutex);
-  fd = smbc_open (filename,O_WRONLY | O_CREAT , O_RDWR);
+  fd = smbc_open (filename, O_WRONLY | O_CREAT , O_RDWR);
   if (fd < 0)
     {
       mutex_unlock (&smb_mutex);  
@@ -963,30 +932,20 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
         else
           continue;
 
-        char *stat_file_name;
-        stat_file_name = malloc (strlen (dir->nn->filename)
-                                 + strlen (dirent->name) + 2);
-        if(!stat_file_name)
-          {
-            mutex_lock (&smb_mutex);
-            smbc_closedir(dd);
-            mutex_unlock (&smb_mutex);
-            return ENOMEM;
-          }                      
-    
+        char stat_file_name[strlen (dir->nn->filename)
+			    + strlen (dirent->name) + 2];
+
         if (!strcmp (dirent->name, "."))
           {
-            sprintf (stat_file_name, "%s", dir->nn->filename);
+	    strcpy (stat_file_name, ".");
             mutex_lock (&smb_mutex);
-            err=smbc_stat (stat_file_name, &st);
+            err = smbc_stat (dir->nn->filename, &st);
             mutex_unlock (&smb_mutex);
           }
-        else if (!strcmp (dirent->name,".."))
+        else if (!strcmp (dirent->name, ".."))
           {
-            if (dir->nn->parent)
-              sprintf (stat_file_name, "%s/%s", dir->nn->filename, dirent->name);
-            else
-              st.st_ino = 0;
+	    st = empty_stat (cred);
+	    st.st_mode |= S_IFDIR;
           }
         else
           {
@@ -1002,8 +961,6 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 		err = 0;
 	      }
           }
-
-        free (stat_file_name);
 
         if (err)
           {
