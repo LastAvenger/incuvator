@@ -222,6 +222,26 @@ add_node (char *filename, struct node *top ,struct netnode** nn)
   return 0;
 }
 
+/* Return a zeroed stat buffer for CRED.  */
+static struct stat
+empty_stat (struct iouser *cred)
+{
+  struct stat st;
+
+  st.st_ino = 0;
+  st.st_dev = st.st_rdev = 0;
+  st.st_size = 0;
+  st.st_blksize = 0;
+  st.st_blocks = 0;
+  st.st_mode = 0;
+  st.st_nlink = 0;
+  st.st_atime = st.st_mtime = st.st_ctime = 0;
+  st.st_uid = cred->uids->num > 0 ? cred->uids->ids[0] : -1;
+  st.st_gid = cred->gids->num > 0 ? cred->gids->ids[0] : -1;
+
+  return st;
+}
+
 error_t
 netfs_validate_stat (struct node * np, struct iouser *cred)
 {
@@ -969,8 +989,15 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
           {
             sprintf (stat_file_name,"%s/%s", dir->nn->filename, dirent->name);
             mutex_lock (&smb_mutex);
-            err=smbc_stat (stat_file_name, &st);
+            err = smbc_stat (stat_file_name, &st);
             mutex_unlock (&smb_mutex);
+
+	    if (err)
+	      {
+		/* STAT_FILE_NAME is not accessible but ought to be listed.  */
+		st = empty_stat (cred);
+		err = 0;
+	      }
           }
 
         free (stat_file_name);
