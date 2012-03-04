@@ -9,5 +9,12 @@ To get libsmbclient compiled under GNU/Hurd do the following:
 4) You need the files: bin/libsmbclient.so and include/libsmbclient.h
 5) Modify the Makefile to have correct path
 
-To run the translator use the settrans command under GNU/Hurd.
-settrans -c /src/smbfs/share/  /src/smbfs/smbfs -sSERVER_NAME  -rSHARED_RESOURCE  -wWORKGROUP -uUSERNAME -pPASSWORD
+To run the translator use the settrans command under GNU/Hurd:
+
+  settrans -c /src/smbfs/share/  /src/smbfs/smbfs \
+    -sSERVER_NAME  -rSHARED_RESOURCE  -wWORKGROUP -uUSERNAME -pPASSWORD
+
+where SERVER_NAME is the IP address or DNS entry name of the host
+running the SMB server, SHARED_RESOURCE is a slash-separated path
+staring with `smb://', WORKGROUP is a workgroup name such as
+"WORKGROUP".
