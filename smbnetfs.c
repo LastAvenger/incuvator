@@ -932,12 +932,8 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
         else
           continue;
 
-        char stat_file_name[strlen (dir->nn->filename)
-			    + strlen (dirent->name) + 2];
-
         if (!strcmp (dirent->name, "."))
           {
-	    strcpy (stat_file_name, ".");
             mutex_lock (&smb_mutex);
             err = smbc_stat (dir->nn->filename, &st);
             mutex_unlock (&smb_mutex);
@@ -949,7 +945,13 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
           }
         else
           {
-            sprintf (stat_file_name,"%s/%s", dir->nn->filename, dirent->name);
+	    char *stat_file_name;
+
+            asprintf (&stat_file_name, "%s/%s",
+		      dir->nn->filename, dirent->name);
+	    if (stat_file_name == NULL)
+	      return ENOMEM;
+
             mutex_lock (&smb_mutex);
             err = smbc_stat (stat_file_name, &st);
             mutex_unlock (&smb_mutex);
