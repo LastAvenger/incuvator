@@ -333,59 +333,24 @@ netfs_attempt_utimes (struct iouser * cred, struct node * np,
 }
 
 error_t
-netfs_attempt_set_size (struct iouser * cred, struct node * np, loff_t size)
+netfs_attempt_set_size (struct iouser *cred, struct node *np, loff_t size)
 {
-  int ret = 0;
-  int fd;
-  int current_filesize;
-  
-  mutex_lock (&smb_mutex);  
-  fd = smbc_open (np->nn->filename, O_WRONLY | O_CREAT, O_RDWR);
-  mutex_unlock (&smb_mutex);  
+  int fd, ret, saved_errno;
+
+  mutex_lock (&smb_mutex);
+  fd = smbc_open (np->nn->filename, O_WRONLY, 0);
+  mutex_unlock (&smb_mutex);
 
   if (fd < 0)
     return errno;
 
-  mutex_lock (&smb_mutex);  
-
-  current_filesize = smbc_lseek (fd, 0, SEEK_END);
-
-  mutex_unlock (&smb_mutex);    
-
-  if (current_filesize < 0)
-    {
-      mutex_lock (&smb_mutex);
-      smbc_close (fd);
-      mutex_unlock (&smb_mutex);
-      return errno;    
-    }
-
-  if (current_filesize < size)
-    {
-      /* FIXME. trunc here.  */  
-      mutex_lock (&smb_mutex);
-      smbc_close (fd);
-      fd = smbc_open (np->nn->filename, O_WRONLY | O_TRUNC, O_RDWR);
-      mutex_unlock (&smb_mutex);
-      current_filesize = 0;
-    }
   mutex_lock (&smb_mutex);
-  ret=smbc_lseek (fd, size, SEEK_SET);
-  mutex_unlock (&smb_mutex);
-
-  if (ret < 0)
-    {
-      mutex_lock (&smb_mutex);
-      smbc_close (fd);
-      mutex_unlock (&smb_mutex);
-      return errno;
-    }
-
-  mutex_lock (&smb_mutex);
+  ret = smbc_ftruncate (fd, size);
+  saved_errno = ret != 0 ? errno : 0;
   smbc_close (fd);
   mutex_unlock (&smb_mutex);
-  return 0;
 
+  return saved_errno;
 }
 
 error_t
@@ -600,7 +565,7 @@ netfs_attempt_create_file (struct iouser * user, struct node * dir,
     return ENOMEM;
 
   mutex_lock (&smb_mutex);
-  fd = smbc_open (filename, O_WRONLY | O_CREAT , O_RDWR);
+  fd = smbc_open (filename, O_WRONLY | O_CREAT, mode);
   if (fd < 0)
     {
       mutex_unlock (&smb_mutex);  
@@ -662,7 +627,7 @@ netfs_attempt_read (struct iouser * cred, struct node * np, loff_t offset,
   int ret = 0;
 
   mutex_lock (&smb_mutex);
-  fd = smbc_open (np->nn->filename, O_RDONLY, O_RDWR);
+  fd = smbc_open (np->nn->filename, O_RDONLY, 0);
   mutex_unlock (&smb_mutex);
 
   if (fd < 0)
@@ -710,9 +675,9 @@ netfs_attempt_write (struct iouser * cred, struct node * np, loff_t offset,
 {
   int ret = 0;
   int fd;
-  
+
   mutex_lock (&smb_mutex);
-  fd = smbc_open (np->nn->filename, O_WRONLY, O_RDWR);
+  fd = smbc_open (np->nn->filename, O_WRONLY, 0);
   mutex_unlock (&smb_mutex);
 
   if (fd < 0)
