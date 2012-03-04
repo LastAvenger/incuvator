@@ -1,6 +1,8 @@
 /*
   Copyright (C) 2004, 2007, 2009 Free Software Foundation, Inc.
   Copyright (C) 2004, 2007, 2009 Giuseppe Scrivano.
+  Copyright (C) 2012 Ludovic Courtès <ludo@gnu.org>
+
   Written by Giuseppe Scrivano <gscrivano@gnu.org>
   
   This program is free software; you can redistribute it and/or
@@ -73,22 +75,23 @@ main (int argc, char *argv[])
 {
   mach_port_t bootstrap;
   int err;
-  task_get_bootstrap_port (mach_task_self (), &bootstrap);
-  if (bootstrap == MACH_PORT_NULL)
-    error (EXIT_FAILURE, errno, "You need to run this as a translator!");      
 
   credentials.server = 0;
   credentials.share = 0;
   credentials.workgroup = 0;
   credentials.username = 0;
   credentials.password = 0;
-  
+
   argp_parse(&smb_argp, argc, argv, 0, 0, &credentials);
-  
+
   if(!credentials.server  || !credentials.share || !credentials.workgroup
      || !credentials.username || !credentials.password)
     error (EXIT_FAILURE, EINVAL, "You must specify server - share - workgroup - username "
            " - password !!!\n");
+
+  task_get_bootstrap_port (mach_task_self (), &bootstrap);
+  if (bootstrap == MACH_PORT_NULL)
+    error (EXIT_FAILURE, errno, "You need to run this as a translator!");
 
   err = init_smb ();  
 
