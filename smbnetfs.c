@@ -50,172 +50,159 @@ char *netfs_server_name = "smbfs";
 char *netfs_server_version = "0.1";
 int netfs_maxsymlinks = 0;
 
+/* A node in the SMB file system.  */
 struct netnode
 {
-  struct node *node;
-  char *filename;
-  struct netnode *parent;
-  struct netnode *next;
+  struct node *node;				/* corresponding node */
+  char *file_name;				/* base name */
+  char *abs_file_name;				/* absolute SMB path */
+  struct node *dir;				/* parent directory */
+  struct node *entries;				/* entries, if a directory */
 };
 
-static struct netnode  *nodes;
-
-/* Free the memory used by the nodes.  */
-static void
-clear_nodes ()
+/* Initialize *NODE with a new node within directory DIR.  */
+static error_t
+create_node (struct node *dir, struct node **node)
 {
-  if (!nodes)
-    return;
-  struct netnode *pt = nodes;
-  struct netnode *pt2 = 0;
+  struct netnode *n;
 
-  for (;;)
-    {
-      pt2 = pt;
-      if (pt2)
-        {
-          pt = pt->next;
-          free (pt2->node);
-          free (pt2->filename);
-          free (pt2);
-        }
-      else
-        break;
-    }
-  nodes = 0;
-}
+  n = calloc (1, sizeof *n);
+  if (!n)
+    return ENOMEM;
 
-static void
-append_node_to_list (struct netnode *n)
-{
-  n->next = nodes;
-  nodes = n;
-}
-
-/* Create a new node and initialize it with default values.  */
-static int
-create_node (struct node **node)
-{
-  struct netnode *n = malloc (sizeof (struct netnode));
-
-  if(!n)
-  	return ENOMEM;
-
+  n->dir = dir;
   *node = n->node = netfs_make_node (n);
   if (!(*node))
     {
       free (n);
       return ENOMEM;
-    }  
-  append_node_to_list (n);
-  return 0;
-}
-
-static struct netnode *
-search_node (char *filename, struct node *dir)
-{
-  struct netnode *pt = nodes;
-
-  while (pt)
-    {
-      if ((pt->parent)  && (dir == pt->parent->node)
-          && !strcmp (pt->filename, filename))
-            return pt;
-
-      pt = pt->next;
     }
 
-  return 0;
-}
-
-static void
-remove_node (struct node *np)
-{
-  struct netnode *pt;
-  struct netnode *prevpt;
-
-  for ( pt=nodes, prevpt=0 ; pt ; pt=pt->next )
+  if (dir != NULL)
     {
-      if (pt->node == np)
-        {
-          free (pt->node);
-          free (pt->filename);
-          free (pt);
+      /* Increase DIR's reference counter.  */
+      netfs_nref (dir);
 
-          if (prevpt)
-            prevpt->next = pt->next;
-          else
-            nodes = pt->next;
+      (*node)->next = NULL;
 
-          break;
-        }
+      if (dir->nn->entries != NULL)
+	{
+	  /* Insert *NODE at the end.  */
+	  struct node *e;
+
+	  for (e = dir->nn->entries;
+	       e->next != NULL;
+	       e = e->next);
+
+	  (*node)->prevp = &e->next;
+	  e->next = *node;
+	}
       else
-        prevpt = pt;
+	{
+	  /* *NODE is the first entry in DIR.  */
+	  (*node)->prevp = &dir->nn->entries;
+	  dir->nn->entries = *node;
+	}
     }
+
+  return 0;
 }
 
+/* Return the node named FILENAME in DIR, or NULL on failure.  */
+static struct netnode *
+search_node (const char *filename, struct node *dir)
+{
+  struct node *entry;
+
+  for (entry = dir->nn->entries;
+       entry != NULL;
+       entry = entry->next)
+    {
+      if (strcmp (entry->nn->file_name, filename) == 0)
+	return entry->nn;
+    }
+
+  return 0;
+}
+
+/* Remove NODE and free any associated resources.  */
+static void
+remove_node (struct node *node)
+{
+  *node->prevp = node->next;
+  node->next = NULL;
+  node->prevp = NULL;
+  if (node->nn->file_name != NULL)
+    free (node->nn->file_name);
+  if (node->nn->abs_file_name != NULL)
+    free (node->nn->abs_file_name);
+  free (node->nn);
+  node->nn = NULL;
+}
+
+/* Create the file system's root node.  */
 static void
 create_root_node ()
 {
   struct node *node;
-  int err = create_node (&node);
+  int err = create_node (NULL, &node);
   if (err)
     return;
 
   netfs_root_node = node;
-  node->nn->parent = 0;
-  node->nn->filename = strdup (credentials.share);
+  node->nn->abs_file_name = strdup (credentials.share);
 
   netfs_validate_stat (node, 0);
 }
 
 
-static int
+/* Add FILENAME in directory NAME and set *NN to the resulting node.  */
+static error_t
 add_node (char *filename, struct node *top ,struct netnode** nn)
 {
   int err;
   struct netnode *n;
   struct node *newnode;
-  io_statbuf_t  st;
 
   n = search_node (filename, top);
-  if (n)
+  if (n == NULL)
     {
-      *nn = n;
-      return 0;
-    }
-    
-  err = create_node (&newnode);
-  if (err)
-    return err;
-  n = newnode->nn;
-  n->node = newnode;
+      /* Nothing known about FILENAME, so create a new node.  */
+      err = create_node (top, &newnode);
+      if (err)
+	return err;
 
-  if (top)
-    n->parent = top->nn;
+      n = newnode->nn;
+      n->node = newnode;
+      n->dir = top;
+      n->file_name = strdup (filename);
+      asprintf (&n->abs_file_name, "%s/%s",
+		top->nn->abs_file_name, filename);
+      if (n->file_name == NULL || n->abs_file_name == NULL)
+	{
+	  netfs_nput (newnode);
+	  return ENOMEM;
+	}
+    }
   else
-    n->parent = 0;
+    /* A node already exists for FILENAME.  */
+    newnode = n->node;
 
-  asprintf (&n->filename, "%s/%s", top->nn->filename, filename);
+  /* Make sure FILENAME actually exists.  */
+  mutex_lock (&smb_mutex);
+  err = smbc_stat (n->abs_file_name, &n->node->nn_stat);
+  mutex_unlock (&smb_mutex);
 
-  mutex_lock (&smb_mutex);  
-  err = smbc_stat (n->filename, &st);
-  mutex_unlock (&smb_mutex);  
-    
-  if (err)
-    return errno;
-  
-  /* Consider only directories and regular files.  */
-  if (((st.st_mode &  S_IFDIR) == 0)  && ((st.st_mode &  S_IFREG) == 0))
-    err=-1;
-  if(err)
-    { 
-      remove_node (newnode);
-      return errno;
+  if (err != 0)
+    {
+      /* FILENAME cannot be accessed, so forget about NEWNODE.  */
+      err = errno;
+      netfs_nput (newnode);
     }
-    
-  *nn = n;
-  return 0;
+  else
+    *nn = n;
+
+  return err;
 }
 
 /* Return a zeroed stat buffer for CRED.  */
@@ -245,7 +232,7 @@ error_t
 netfs_validate_stat (struct node * np, struct iouser *cred)
 {
   mutex_lock (&smb_mutex);    
-  int err = smbc_stat (np->nn->filename, &np->nn_stat);
+  int err = smbc_stat (np->nn->abs_file_name, &np->nn_stat);
   mutex_unlock (&smb_mutex);
   if (err)
     return errno;
@@ -270,9 +257,9 @@ error_t
 netfs_attempt_chmod (struct iouser * cred, struct node * np, mode_t mode)
 {
   int err;
-  mutex_lock (&smb_mutex);    
-  err=smbc_chmod (np->nn->filename,mode);
-  mutex_unlock (&smb_mutex);  
+  mutex_lock (&smb_mutex);
+  err = smbc_chmod (np->nn->abs_file_name, mode);
+  mutex_unlock (&smb_mutex);
 
   if (err)
     return errno;
@@ -322,8 +309,8 @@ netfs_attempt_utimes (struct iouser * cred, struct node * np,
   else
     maptime_read (maptime, &tv);
 
-  mutex_lock (&smb_mutex);    
-  err = smbc_utimes (np->nn->filename, &tv);
+  mutex_lock (&smb_mutex);
+  err = smbc_utimes (np->nn->abs_file_name, &tv);
   mutex_unlock (&smb_mutex);
 
   if(err)
@@ -338,7 +325,7 @@ netfs_attempt_set_size (struct iouser *cred, struct node *np, loff_t size)
   int fd, ret, saved_errno;
 
   mutex_lock (&smb_mutex);
-  fd = smbc_open (np->nn->filename, O_WRONLY, 0);
+  fd = smbc_open (np->nn->abs_file_name, O_WRONLY, 0);
   mutex_unlock (&smb_mutex);
 
   if (fd < 0)
@@ -388,9 +375,9 @@ netfs_attempt_lookup (struct iouser * user, struct node * dir, char *name,
     }
   else if (strcmp (name, "..") == 0)	/*Parent directory */
     {
-      if (dir->nn->parent)
+      if (dir->nn->dir)
         {
-          *np = dir->nn->parent->node;
+          *np = dir->nn->dir;
           if (*np)
             {
               netfs_nref (*np);
@@ -410,8 +397,7 @@ netfs_attempt_lookup (struct iouser * user, struct node * dir, char *name,
     }
 
   mutex_unlock (&dir->lock);
-  
-  err = add_node (name, dir,&n);
+  err = add_node (name, dir, &n);
 
   if(err)
     return err;
@@ -430,10 +416,7 @@ netfs_attempt_unlink (struct iouser * user, struct node * dir, char *name)
 {
   char *filename;
 
-  if (dir->nn->filename)
-    asprintf (&filename, "%s/%s", dir->nn->filename, name);
-  else
-    asprintf (&filename, "%s/%s", credentials.share, name);
+  asprintf (&filename, "%s/%s", dir->nn->abs_file_name, name);
 
   if (!filename)
     return ENOMEM;
@@ -458,19 +441,11 @@ netfs_attempt_rename (struct iouser * user, struct node * fromdir,
   char *filename;		/* Origin file name.  */
   char *filename2;		/* Destination file name.  */
 
-  if (fromdir->nn->filename)
-    asprintf (&filename, "%s/%s", fromdir->nn->filename,fromname);
-  else
-    asprintf (&filename, "%s/%s", credentials.share, fromname);
-
+  asprintf (&filename, "%s/%s", fromdir->nn->abs_file_name, fromname);
   if (!filename)
     return ENOMEM;
 
-  if (todir->nn->filename)
-    asprintf (&filename2, "%s/%s", todir->nn->filename, toname);
-  else
-    asprintf (&filename2, "%s/%s", credentials.share, toname);
-
+  asprintf (&filename2, "%s/%s", todir->nn->abs_file_name, toname);
   if (!filename2)
     {
       free (filename);
@@ -479,8 +454,8 @@ netfs_attempt_rename (struct iouser * user, struct node * fromdir,
 
   mutex_lock (&smb_mutex);
   error_t err = smbc_rename (filename, filename2);
-  mutex_unlock (&smb_mutex);  
-  
+  mutex_unlock (&smb_mutex);
+
   free (filename);
   free (filename2);
   return err ? errno : 0;
@@ -493,11 +468,7 @@ netfs_attempt_mkdir (struct iouser * user, struct node * dir, char *name,
   char *filename;
   error_t err;
 
-  if (dir->nn->filename)
-    asprintf (&filename, "%s/%s", dir->nn->filename,name);
-  else
-    asprintf (&filename, "%s/%s", credentials.share, name);
-
+  asprintf (&filename, "%s/%s", dir->nn->abs_file_name,name);
   if (!filename)
     return ENOMEM;
 
@@ -515,11 +486,7 @@ netfs_attempt_rmdir (struct iouser * user, struct node * dir, char *name)
   char *filename;
   error_t err;
 
-  if (dir->nn->filename)
-    asprintf (&filename, "%s/%s", dir->nn->filename,    name);
-  else
-    asprintf (&filename, "%s/%s", credentials.share, name);
-
+  asprintf (&filename, "%s/%s", dir->nn->abs_file_name, name);
   if (!filename)
     return ENOMEM;
 
@@ -556,11 +523,7 @@ netfs_attempt_create_file (struct iouser * user, struct node * dir,
   int fd;
   *np = 0;
 
-  if (dir->nn->filename)
-    asprintf (&filename, "%s/%s", dir->nn->filename,name);
-  else
-    asprintf (&filename, "%s/%s", credentials.share, name);
-
+  asprintf (&filename, "%s/%s", dir->nn->abs_file_name, name);
   if (!filename)
     return ENOMEM;
 
@@ -603,7 +566,7 @@ netfs_check_open_permissions (struct iouser * user, struct node * np,
   io_statbuf_t  nn_stat;
   
   mutex_lock (&smb_mutex);
-  err = smbc_stat (np->nn->filename, &nn_stat);
+  err = smbc_stat (np->nn->abs_file_name, &nn_stat);
   mutex_unlock (&smb_mutex);
    
   if (err)
@@ -627,7 +590,7 @@ netfs_attempt_read (struct iouser * cred, struct node * np, loff_t offset,
   int ret = 0;
 
   mutex_lock (&smb_mutex);
-  fd = smbc_open (np->nn->filename, O_RDONLY, 0);
+  fd = smbc_open (np->nn->abs_file_name, O_RDONLY, 0);
   mutex_unlock (&smb_mutex);
 
   if (fd < 0)
@@ -677,7 +640,7 @@ netfs_attempt_write (struct iouser * cred, struct node * np, loff_t offset,
   int fd;
 
   mutex_lock (&smb_mutex);
-  fd = smbc_open (np->nn->filename, O_WRONLY, 0);
+  fd = smbc_open (np->nn->abs_file_name, O_WRONLY, 0);
   mutex_unlock (&smb_mutex);
 
   if (fd < 0)
@@ -763,7 +726,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
     return ENOTDIR;
 
   mutex_lock (&smb_mutex);
-  dd = smbc_opendir (dir->nn->filename);
+  dd = smbc_opendir (dir->nn->abs_file_name);
   mutex_unlock (&smb_mutex);
   
   if (dd < 0)
@@ -900,7 +863,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
         if (!strcmp (dirent->name, "."))
           {
             mutex_lock (&smb_mutex);
-            err = smbc_stat (dir->nn->filename, &st);
+            err = smbc_stat (dir->nn->abs_file_name, &st);
             mutex_unlock (&smb_mutex);
           }
         else if (!strcmp (dirent->name, ".."))
@@ -913,7 +876,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 	    char *stat_file_name;
 
             asprintf (&stat_file_name, "%s/%s",
-		      dir->nn->filename, dirent->name);
+		      dir->nn->abs_file_name, dirent->name);
 	    if (stat_file_name == NULL)
 	      return ENOMEM;
 
@@ -954,7 +917,6 @@ void
 smbfs_init ()
 {
   int err;
-  nodes = 0;
   err = maptime_map (0, 0, &maptime);
 
   if(err)
@@ -967,5 +929,4 @@ void
 smbfs_terminate ()
 {
   mutex_init (&smb_mutex);
-  clear_nodes ();
 }
