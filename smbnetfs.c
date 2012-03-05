@@ -21,6 +21,8 @@
 
 #include "smb.h"
 #include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <hurd/fsys.h>
 #include <dirent.h>
@@ -60,7 +62,22 @@ struct netnode
   struct node *entries;				/* entries, if a directory */
 };
 
-/* Initialize *NODE with a new node within directory DIR.  */
+/* Return a zeroed stat buffer for CRED.  */
+static struct stat
+empty_stat (void)
+{
+  struct stat st;
+
+  memset (&st, 0, sizeof st);
+
+  st.st_fstype = FSTYPE_MISC;
+  st.st_fsid = getpid ();
+
+  return st;
+}
+
+/* Initialize *NODE with a new node within directory DIR, and for user
+   CRED.  */
 static error_t
 create_node (struct node *dir, struct node **node)
 {
@@ -104,6 +121,8 @@ create_node (struct node *dir, struct node **node)
 	  dir->nn->entries = *node;
 	}
     }
+
+  (*node)->nn_stat = empty_stat ();
 
   return 0;
 }
@@ -156,9 +175,9 @@ create_root_node ()
 }
 
 
-/* Add FILENAME in directory NAME and set *NN to the resulting node.  */
+/* Add FILENAME in directory TOP and set *NN to the resulting node.  */
 static error_t
-add_node (char *filename, struct node *top ,struct netnode** nn)
+add_node (char *filename, struct node *top, struct netnode **nn)
 {
   int err;
   struct netnode *n;
@@ -205,38 +224,21 @@ add_node (char *filename, struct node *top ,struct netnode** nn)
   return err;
 }
 
-/* Return a zeroed stat buffer for CRED.  */
-static struct stat
-empty_stat (struct iouser *cred)
-{
-  struct stat st;
-
-  st.st_fstype = FSTYPE_MISC;
-  st.st_fsid = getpid ();
-  st.st_ino = 0;
-  st.st_dev = st.st_rdev = 0;
-  st.st_size = 0;
-  st.st_blksize = 0;
-  st.st_blocks = 0;
-  st.st_mode = 0;
-  st.st_nlink = 0;
-  st.st_atime = st.st_mtime = st.st_ctime = 0;
-  st.st_uid = cred->uids->num > 0 ? cred->uids->ids[0] : -1;
-  st.st_gid = cred->gids->num > 0 ? cred->gids->ids[0] : -1;
-
-  return st;
-}
-
 
 error_t
-netfs_validate_stat (struct node * np, struct iouser *cred)
+netfs_validate_stat (struct node *np, struct iouser *cred)
 {
-  mutex_lock (&smb_mutex);    
+  np->nn_stat = empty_stat ();
+  np->nn_stat.st_ino = (uintptr_t) np >> 3UL;
+
+  mutex_lock (&smb_mutex);
   int err = smbc_stat (np->nn->abs_file_name, &np->nn_stat);
   mutex_unlock (&smb_mutex);
   if (err)
     return errno;
-    
+
+  np->nn_stat.st_author = np->nn_stat.st_uid;
+
   return 0;
 }
 
@@ -521,6 +523,7 @@ netfs_attempt_create_file (struct iouser * user, struct node * dir,
   char *filename;
   struct netnode *nn;
   int fd;
+
   *np = 0;
 
   asprintf (&filename, "%s/%s", dir->nn->abs_file_name, name);
@@ -868,7 +871,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
           }
         else if (!strcmp (dirent->name, ".."))
           {
-	    st = empty_stat (cred);
+	    st = empty_stat ();
 	    st.st_mode |= S_IFDIR;
           }
         else
@@ -887,7 +890,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 	    if (err)
 	      {
 		/* STAT_FILE_NAME is not accessible but ought to be listed.  */
-		st = empty_stat (cred);
+		st = empty_stat ();
 		err = 0;
 	      }
           }
