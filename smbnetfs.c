@@ -652,7 +652,7 @@ netfs_attempt_write (struct iouser * cred, struct node * np, loff_t offset,
       return errno;
     }
   mutex_lock (&smb_mutex);
-  ret = smbc_lseek (fd, offset, SEEK_SET) < 0;
+  ret = smbc_lseek (fd, offset, SEEK_SET);
   mutex_unlock (&smb_mutex);
   
   if ((ret < 0) || (ret != offset))
