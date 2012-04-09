@@ -19,7 +19,10 @@ VERSION=2.6.29.6
 
 SRC=linux-$(VERSION)/drivers/net
 
+# TODO: should take driver order from Linux
 BLACKLIST = \
+	    This is a dumb driver \
+	    $(SRC)/pci-skeleton.c \
 	    These dont build at all \
 	    \
 	    $(SRC)/netx-eth.c $(SRC)/smc911x.c $(wildcard $(SRC)/irda/*) \
