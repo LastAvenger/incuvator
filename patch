@@ -29,3 +29,45 @@
  
  	err = device_register(&bus->dev);
  	if (err) {
+
+commit 349124a00754129a5f1e43efa84733e364bf3749
+Author: Figo.zhang <zhangtianfei@leadcoretech.com>
+Date:   Mon Jun 7 21:13:22 2010 +0000
+
+    net8139: fix a race at the end of NAPI
+    
+    fix a race at the end of NAPI complete processing, it had
+    better do __napi_complete() first before re-enable interrupt.
+    
+    Signed-off-by:Figo.zhang <figo1802@gmail.com>
+    
+    Signed-off-by: David S. Miller <davem@davemloft.net>
+
+diff --git a/drivers/net/8139cp.c b/drivers/net/8139cp.c
+index 9c14975..284a5f4 100644
+--- dde/8139cp.c
++++ dde/8139cp.c
+@@ -598,8 +598,8 @@ rx_next:
+ 			goto rx_status_loop;
+ 
+ 		spin_lock_irqsave(&cp->lock, flags);
+-		cpw16_f(IntrMask, cp_intr_mask);
+ 		__netif_rx_complete(napi);
++		cpw16_f(IntrMask, cp_intr_mask);
+ 		spin_unlock_irqrestore(&cp->lock, flags);
+ 	}
+ 
+diff --git a/drivers/net/8139too.c b/drivers/net/8139too.c
+index 80cd074..97d8068 100644
+--- dde/8139too.c
++++ dde/8139too.c
+@@ -2089,8 +2089,8 @@ static int rtl8139_poll(struct napi_struct *napi, int budget)
+ 		 * again when we think we are done.
+ 		 */
+ 		spin_lock_irqsave(&tp->lock, flags);
+-		RTL_W16_F(IntrMask, rtl8139_intr_mask);
+ 		__netif_rx_complete(napi);
++		RTL_W16_F(IntrMask, rtl8139_intr_mask);
+ 		spin_unlock_irqrestore(&tp->lock, flags);
+ 	}
+ 	spin_unlock(&tp->rx_lock);
