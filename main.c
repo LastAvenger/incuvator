@@ -7,11 +7,14 @@
 #include <linux/delay.h> // msleep()
 
 #include <hurd/machdev.h>
+#include "check_kernel.h"
 
 int using_std = 1;
 
 int main(int argc, char **argv)
 {
+	check_kernel();
+
 	l4dde26_init();
 	l4dde26_process_init();
 	l4dde26_softirq_init();
