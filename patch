@@ -71,3 +71,27 @@ index 80cd074..97d8068 100644
  		spin_unlock_irqrestore(&tp->lock, flags);
  	}
  	spin_unlock(&tp->rx_lock);
+--- dde/e1000/e1000_main.c
++++ dde/e1000/e1000_main.c
+@@ -3759,6 +3759,21 @@ static irqreturn_t e1000_intr(int irq, void *data)
+ 	if (unlikely(test_bit(__E1000_DOWN, &adapter->flags)))
+ 		return IRQ_HANDLED;
+ 
++	if (unlikely(icr & E1000_ICR_RXO)) {
++		/* Receive Overrun */
++		u32 rctl;
++		int i;
++		rctl = er32(RCTL);
++		ew32(RCTL, rctl & ~E1000_RCTL_EN);
++		for (i = 0; i < adapter->num_rx_queues; i++) {
++			memset(adapter->rx_ring[i].desc, 0, adapter->rx_ring[i].size);
++			adapter->rx_ring[i].next_to_clean = 0;
++		}
++		ew32(RDH, 0);
++		ew32(RCTL, rctl);
++		adapter->netdev->stats.rx_fifo_errors++;
++	}
++
+ 	if (unlikely(icr & (E1000_ICR_RXSEQ | E1000_ICR_LSC))) {
+ 		hw->get_link_status = 1;
+ 		/* guard against interrupt when we're going down */
