@@ -1,3 +1,5 @@
+Fix naming conflict
+
 --- dde/e1000e/netdev.c.orig	2012-02-24 03:45:47.000000000 +0000
 +++ dde/e1000e/netdev.c	2012-02-24 03:45:52.000000000 +0000
 @@ -5217,7 +5217,7 @@
@@ -18,6 +20,9 @@
  
  /**
   * e1000_exit_module - Driver Exit Cleanup Routine
+
+Fix format issue
+
 --- dde/phy/mdio_bus.c.orig	2012-02-26 00:14:07.000000000 +0000
 +++ dde/phy/mdio_bus.c	2012-02-26 00:14:08.000000000 +0000
 @@ -99,7 +99,7 @@
@@ -71,6 +76,10 @@ index 80cd074..97d8068 100644
  		spin_unlock_irqrestore(&tp->lock, flags);
  	}
  	spin_unlock(&tp->rx_lock);
+
+Work around a bug in qemu which makes it fill the ring at initialization if a
+packet comes at the wrong time.
+
 --- dde/e1000/e1000_main.c
 +++ dde/e1000/e1000_main.c
 @@ -3759,6 +3759,21 @@ static irqreturn_t e1000_intr(int irq, void *data)
