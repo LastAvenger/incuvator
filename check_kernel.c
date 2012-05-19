@@ -41,7 +41,7 @@ void check_kernel(void) {
 			error_t err;
 
 			fprintf (stderr, "Kernel is already driving a network device, starting devnode instead of netdde\n");
-			err = execl ("/hurd/devnode", "devnode", "eth0", NULL);
+			err = execl ("/hurd/devnode", "devnode", "-n", "eth0", "eth0", NULL);
 			error (1, err, "Invocation of devnode failed");
 		    }
 	    }
