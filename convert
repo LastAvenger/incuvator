@@ -1,10 +1,10 @@
 #!/bin/bash
 N=$(grep -n "#include" "$1" | tail -n 1 | cut -d : -f 1)
-while sed -ne "$(($N+1))p" "$1" | grep "^#endif"
+[ -n "$N" ] || N=0
+while sed -ne "$(($N+1))p" "$1" | grep -q "^#endif"
 do
   N=$(($N + 1))
 done
-[ -n "$N" ] || N=0
 head -n $N "$1"
 echo "#include <ddekit/timer.h>"
 tail -n +$(($N+1)) "$1"
