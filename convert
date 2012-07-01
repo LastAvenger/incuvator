@@ -1,5 +1,9 @@
 #!/bin/bash
 N=$(grep -n "#include" "$1" | tail -n 1 | cut -d : -f 1)
+while sed -ne "$(($N+1))p" "$1" | grep "^#endif"
+do
+  N=$(($N + 1))
+done
 [ -n "$N" ] || N=0
 head -n $N "$1"
 echo "#include <ddekit/timer.h>"
