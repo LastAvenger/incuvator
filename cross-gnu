@@ -69,13 +69,15 @@ mkdir -p "$BINUTILS_SRC".obj &&
 cd "$BINUTILS_SRC".obj &&
 # We use `config.status''s existence as an indicator whether the package was
 # configured already.  (E.g. when running cross-gnu a second time to update the
-# tool chain.)
+# tool chain.)  Force the use of .init_array/.fini_array sections until
+# auto-detection has been fixed.
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$BINUTILS_SRC"/configure \
     --target="$TARGET" \
     --prefix="$ROOT" \
     --with-sysroot="$SYS_ROOT" \
-    --disable-nls
+    --disable-nls \
+    --enable-initfini-array
 fi &&
 "$MAKE" \
   all \
