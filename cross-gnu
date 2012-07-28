@@ -94,6 +94,7 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
     # deactivated, as there is no fenv.h yet (glibc), and there is no autoconf
     # test for its presence.
     "$GCC_SRC"/configure \
+      --enable-build-with-cxx \
       --target="$TARGET" \
       --prefix="$ROOT" \
       --with-sysroot="$SYS_ROOT" \
@@ -303,6 +304,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   # enabling threading support for `$TARGET', thus ``--enable-threads=posix''
   # is given.
   "$GCC_SRC"/configure \
+    --enable-build-with-cxx \
     --target="$TARGET" \
     --prefix="$ROOT" \
     --with-sysroot="$SYS_ROOT" \
