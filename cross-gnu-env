@@ -3,7 +3,8 @@
 # Cross compile a GNU build environment,
 # <http://www.gnu.org/software/hurd/toolchain/cross-gnu.html>.
 
-# Copyright (C) 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012 Free Software Foundation,
+# Inc.
 
 # Written by Thomas Schwinge <thomas@schwinge.name>.
 
@@ -84,6 +85,13 @@ case $ROOT in
 esac &&
 
 prj_x2 prj_set_default SYS_ROOT "$ROOT"/sys_root &&
+
+# Note that to avoid confusing GCC, the following has to match how GCC is
+# configured re NATIVE_SYSTEM_HEADER_DIR (gcc/config/t-gnu) or
+# native_system_header_dir (gcc/config.gcc) or the
+# --with-native-system-header-dir command-line option.
+#prj_unset CROSS_GNU_USR &&
+prj_x2 prj_set_default CROSS_GNU_USR /usr &&
 
 prj_x2 prj_set_default TARGET i686-pc-gnu &&
 

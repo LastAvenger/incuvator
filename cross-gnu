@@ -3,7 +3,8 @@
 # Cross compile a GNU build environment,
 # <http://www.gnu.org/software/hurd/toolchain/cross-gnu.html>.
 
-# Copyright (C) 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
+# Copyright (C) 2006, 2007, 2008, 2010, 2011, 2012 Free Software Foundation,
+# Inc.
 
 # Written by Thomas Schwinge <thomas@schwinge.name>.
 
@@ -49,8 +50,17 @@ set -x &&
 
 mkdir -p "$ROOT" &&
 cd "$ROOT" &&
-mkdir -p bin "$SYS_ROOT"/include "$SYS_ROOT"/lib "$TARGET" &&
-ln -sfn "$SYS_ROOT"/include "$SYS_ROOT"/lib "$TARGET"/ &&
+# TODO.  Are all these needed?
+mkdir -p \
+  bin \
+  "$SYS_ROOT""$CROSS_GNU_USR"/include \
+  "$SYS_ROOT""$CROSS_GNU_USR"/lib \
+  "$TARGET" &&
+# TODO.  Use relative links.
+ln -sfn \
+  "$SYS_ROOT""$CROSS_GNU_USR"/include \
+  "$SYS_ROOT""$CROSS_GNU_USR"/lib \
+  "$TARGET"/ &&
 
 
 # Install the cross GNU Binutils.
@@ -99,9 +109,9 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
 
 # TODO: GCC 3.3 and GCC 3.4 need this for building libgcc.a.  Not needed for
 # GCC 4.0.  Get rid of this?
-  : > "$SYS_ROOT"/include/signal.h &&
-  mkdir -p "$SYS_ROOT"/include/sys &&
-  : > "$SYS_ROOT"/include/sys/ucontext.h &&
+  : > "$SYS_ROOT""$CROSS_GNU_USR"/include/signal.h &&
+  mkdir -p "$SYS_ROOT""$CROSS_GNU_USR"/include/sys &&
+  : > "$SYS_ROOT""$CROSS_GNU_USR"/include/sys/ucontext.h &&
 
   if "$MAKE" \
       all-gcc \
@@ -115,13 +125,15 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
 # TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
 # system wants to link against that library.
 # <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.
-    echo '/* Empty.  */' > "$SYS_ROOT"/lib/libgcc_eh.a
+    echo '/* Empty.  */' > "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a
   then
     mv config.status config.status.removed &&
     # TODO.
     rm -f config.cache */config.cache */*/config.cache &&
     # Remove the bogus files if building the cross compiler succeeded.
-    rm "$SYS_ROOT"/include/signal.h "$SYS_ROOT"/include/sys/ucontext.h
+    rm \
+      "$SYS_ROOT""$CROSS_GNU_USR"/include/signal.h \
+      "$SYS_ROOT""$CROSS_GNU_USR"/include/sys/ucontext.h
   else
     # That indication file might already have been installed, but we do not yet
     # have a complete, working cross compiler.
@@ -141,7 +153,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   CC=gcc \
   "$GNUMACH_SRC"/configure \
     --host="$TARGET" \
-    --prefix=
+    --prefix="$CROSS_GNU_USR"
 fi &&
 "$MAKE" \
   DESTDIR="$SYS_ROOT" \
@@ -172,12 +184,12 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   CC=gcc \
   "$HURD_SRC"/configure \
     --host="$TARGET" \
-    --prefix= \
+    --prefix="$CROSS_GNU_USR" \
     --disable-profile \
     --without-parted
 fi &&
 "$MAKE" \
-  prefix="$SYS_ROOT" \
+  prefix="$SYS_ROOT""$CROSS_GNU_USR" \
   no_deps=t \
   install-headers &&
 # Below, we will reconfigure for allowing to build libpthread.
@@ -194,7 +206,7 @@ if ./config.status --version > /dev/null 2>&1; then :; else
   CC=gcc \
   "$LIBPTHREAD_SRC"/configure \
     --host="$TARGET" \
-    --prefix= \
+    --prefix="$CROSS_GNU_USR" \
     ac_cv_lib_ihash_hurd_ihash_create=yes
 fi &&
 "$MAKE" \
@@ -221,8 +233,8 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
       --without-cvs \
       --build="$("$GLIBC_SRC"/scripts/config.guess)" \
       --host="$TARGET" \
-      --prefix= \
-      --with-headers="$SYS_ROOT"/include \
+      --prefix="$CROSS_GNU_USR" \
+      --with-headers="$SYS_ROOT""$CROSS_GNU_USR"/include \
       --disable-profile \
       --disable-multi-arch
   fi &&
@@ -258,14 +270,14 @@ cd "$HURD_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$HURD_SRC"/configure \
     --host="$TARGET" \
-    --prefix= \
+    --prefix="$CROSS_GNU_USR" \
     --disable-profile \
     --without-parted
 fi &&
 "$MAKE" \
   libihash &&
 "$MAKE" \
-  prefix="$SYS_ROOT" \
+  prefix="$SYS_ROOT""$CROSS_GNU_USR" \
   libihash-install &&
 
 mkdir -p "$LIBPTHREAD_SRC".obj &&
@@ -273,7 +285,7 @@ cd "$LIBPTHREAD_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$LIBPTHREAD_SRC"/configure \
     --host="$TARGET" \
-    --prefix=
+    --prefix="$CROSS_GNU_USR"
 fi &&
 "$MAKE" \
   all &&
@@ -299,14 +311,16 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --enable-languages=c,c++ \
     --with-arch=i686
 fi &&
-# ``The directory that should contain system headers does not exist:
-# $SYS_ROOT/usr/include''.
-mkdir -p "$SYS_ROOT"/usr/include &&
+if [ x"$CROSS_GNU_USR" = x/usr ]; then :; else
+  # ``The directory that should contain system headers does not exist:
+  # $SYS_ROOT/usr/include''.
+  mkdir -p "$SYS_ROOT"/usr/include
+fi &&
 "$MAKE" \
   all &&
 # Remove the bogus libgcc_eh, libgcc and libgcov that may have been installed
 # earlier.
-rm -f "$SYS_ROOT"/lib/libgcc_eh.a \
+rm -f "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a \
   "$ROOT"/lib/gcc/"$TARGET"/*/libgcc.a "$ROOT"/lib/gcc/"$TARGET"/*/libgcov.a &&
 "$MAKE" \
   install &&
@@ -324,8 +338,8 @@ if ./config.status --version > /dev/null 2>&1; then :; else
     --without-cvs \
     --build="$("$GLIBC_SRC"/scripts/config.guess)" \
     --host="$TARGET" \
-    --prefix= \
-    --with-headers="$SYS_ROOT"/include \
+    --prefix="$CROSS_GNU_USR" \
+    --with-headers="$SYS_ROOT""$CROSS_GNU_USR"/include \
     --disable-profile \
     --disable-multi-arch
 fi &&
