@@ -49,6 +49,8 @@ TERM=mach &&
 
 umask 022 &&
 
+fsysopts / --writable &&
+
 # Needed for dpkg.
 { test -c /servers/socket/1 \
   || settrans -c /servers/socket/1 /hurd/pflocal; } &&
@@ -74,8 +76,12 @@ EOS
 
 # Already enable swap up here.
 mkswap.linux -v1 /dev/$DISK_SWAP &&
-/hurd/mach-defpager &&
+# Might be running already.
+{ /hurd/mach-defpager || :; } &&
 swapon -a &&
+
+# Work around »Existing system found, exitting.«.
+{ test -d /proc/ && rmdir /proc || :; } &&
 
 ./native-install &&
 
