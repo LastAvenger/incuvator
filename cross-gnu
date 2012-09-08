@@ -28,6 +28,20 @@
 # look at these issues and send the outcome back to me.
 
 
+# Functions from Paul Jarc's prjlibs available at
+# <http://code.dogmap.org/prjlibs/>.
+
+# sh/set_default.sh
+case $? in 0) :;; *) (exit "$?");; esac &&
+prj_set_default() {
+  : "${2?}" &&
+  eval "
+  if test \"\${$1+x}\" = x; then :; else
+    $1=\$2
+  fi"
+}
+
+
 # Check for `cross-gnu-env' having been ran.
 
 if [ x"${CROSS_GNU_REINSTALL_GLIBC-not_set}" = xnot_set ]; then
@@ -44,6 +58,15 @@ fi &&
 # Be verbose.
 
 set -x &&
+
+
+# Run-time configuration.
+
+if test -f "$GLIBC_SRC"/elf/static-stubs.c; then
+  prj_set_default GLIBC_have_static_stubs true
+else
+  prj_set_default GLIBC_have_static_stubs false
+fi &&
 
 
 # Create directories.
@@ -125,10 +148,14 @@ if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
 	all-target-libgcc \
 	install-target-libgcc
     fi &&
+    if ! $GLIBC_have_static_stubs; then
 # TODO: Make glibc happy.  We can not yet build libgcc_eh, but glibc's build
 # system wants to link against that library.
-# <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.
-    echo '/* Empty.  */' > "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a
+# <http://sources.redhat.com/ml/libc-alpha/2003-09/msg00100.html>.  With
+# $GLIBC_have_static_stubs, this is no longer necessary, as per
+# id:"87txyoksdr.fsf@schwinge.name".
+      echo '/* Empty.  */' > "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a
+    fi
   then
     mv config.status config.status.removed &&
     # TODO.
@@ -322,16 +349,20 @@ if [ x"$CROSS_GNU_USR" = x/usr ]; then :; else
 fi &&
 "$MAKE" \
   all &&
+if ! $GLIBC_have_static_stubs; then
 # Remove the bogus libgcc_eh, libgcc and libgcov that may have been installed
-# earlier.
-rm -f "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a \
-  "$ROOT"/lib/gcc/"$TARGET"/*/libgcc.a "$ROOT"/lib/gcc/"$TARGET"/*/libgcov.a &&
+# earlier.  TODO.  Why are libgcc.a and libgcov.a handled here?
+  rm -f "$SYS_ROOT""$CROSS_GNU_USR"/lib/libgcc_eh.a \
+    "$ROOT"/lib/gcc/"$TARGET"/*/libgcc.a "$ROOT"/lib/gcc/"$TARGET"/*/libgcov.a
+fi &&
 "$MAKE" \
   install &&
 
 
 # Install the GNU C Library.
 
+# TODO.  With $GLIBC_have_static_stubs, this may no longer be necessary, as per
+# id:"87txyoksdr.fsf@schwinge.name".
 mkdir -p "$GLIBC_SRC".obj &&
 cd "$GLIBC_SRC".obj &&
 if ./config.status --version > /dev/null 2>&1; then :; else
