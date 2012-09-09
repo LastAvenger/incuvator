@@ -96,13 +96,21 @@ prj_x2 prj_set_default CROSS_GNU_USR /usr &&
 prj_x2 prj_set_default TARGET i686-pc-gnu &&
 
 prj_x2 prj_set_default BINUTILS_SRC "$ROOT"/src/binutils &&
+prj_x2 prj_set_default BINUTILS_OBJ "$ROOT"/obj/binutils &&
 prj_x2 prj_set_default GCC_SRC "$ROOT"/src/gcc &&
+prj_x2 prj_set_default GCC_OBJ "$ROOT"/obj/gcc &&
 prj_x2 prj_set_default GDB_SRC "$ROOT"/src/gdb &&
+prj_x2 prj_set_default GDB_OBJ "$ROOT"/obj/gdb &&
 prj_x2 prj_set_default GLIBC_SRC "$ROOT"/src/glibc &&
+prj_x2 prj_set_default GLIBC_OBJ "$ROOT"/obj/glibc &&
 prj_x2 prj_set_default GNUMACH_SRC "$ROOT"/src/gnumach &&
+prj_x2 prj_set_default GNUMACH_OBJ "$ROOT"/obj/gnumach &&
 prj_x2 prj_set_default HURD_SRC "$ROOT"/src/hurd &&
+prj_x2 prj_set_default HURD_OBJ "$ROOT"/obj/hurd &&
 prj_x2 prj_set_default MIG_SRC "$ROOT"/src/mig &&
+prj_x2 prj_set_default MIG_OBJ "$ROOT"/obj/mig &&
 prj_x2 prj_set_default LIBPTHREAD_SRC "$ROOT"/src/libpthread &&
+prj_x2 prj_set_default LIBPTHREAD_OBJ "$ROOT"/obj/libpthread &&
 
 # TODO.  See cross-gnu.
 prj_x2 prj_set_default CROSS_GNU_REINSTALL_GLIBC y &&

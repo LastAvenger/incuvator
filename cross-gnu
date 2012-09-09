@@ -88,8 +88,8 @@ ln -sfn \
 
 # Install the cross GNU Binutils.
 
-mkdir -p "$BINUTILS_SRC".obj &&
-cd "$BINUTILS_SRC".obj &&
+mkdir -p "$BINUTILS_OBJ" &&
+cd "$BINUTILS_OBJ"/ &&
 # We use `config.status''s existence as an indicator whether the package was
 # configured already.  (E.g. when running cross-gnu a second time to update the
 # tool chain.)  Force the use of .init_array/.fini_array sections until
@@ -109,8 +109,8 @@ fi &&
 
 # Install a minimal cross GCC to build a cross MIG and the GNU C Library.
 
-mkdir -p "$GCC_SRC".obj &&
-cd "$GCC_SRC".obj &&
+mkdir -p "$GCC_OBJ" &&
+cd "$GCC_OBJ"/ &&
 # Perhaps we already have a complete cross GCC?
 if "$TARGET"-gcc --version > /dev/null 2>&1; then :; else
   if ./config.status --version > /dev/null 2>&1; then :; else
@@ -175,8 +175,8 @@ fi &&
 
 # Install GNU Mach's header files.
 
-mkdir -p "$GNUMACH_SRC".obj &&
-cd "$GNUMACH_SRC".obj &&
+mkdir -p "$GNUMACH_OBJ" &&
+cd "$GNUMACH_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
   # needed either.
@@ -192,8 +192,8 @@ fi &&
 
 # Install a cross GNU MIG.
 
-mkdir -p "$MIG_SRC".obj &&
-cd "$MIG_SRC".obj &&
+mkdir -p "$MIG_OBJ" &&
+cd "$MIG_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$MIG_SRC"/configure \
     --target="$TARGET" \
@@ -206,8 +206,8 @@ fi &&
 
 # Install the GNU Hurd's core libraries' header files.
 
-mkdir -p "$HURD_SRC".obj &&
-cd "$HURD_SRC".obj &&
+mkdir -p "$HURD_OBJ" &&
+cd "$HURD_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
   # needed either.
@@ -228,8 +228,8 @@ then rm config.status
 else :
 fi &&
 
-mkdir -p "$LIBPTHREAD_SRC".obj &&
-cd "$LIBPTHREAD_SRC".obj &&
+mkdir -p "$LIBPTHREAD_OBJ" &&
+cd "$LIBPTHREAD_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # `$TARGET-gcc' doesn't work yet (to satisfy the Autoconf checks), but isn't
   # needed either.
@@ -253,8 +253,8 @@ fi &&
 
 # Do we already have the GNU C library installed?
 if test -h "$SYS_ROOT"/lib/ld.so; then :; else
-  mkdir -p "$GLIBC_SRC".obj &&
-  cd "$GLIBC_SRC".obj &&
+  mkdir -p "$GLIBC_OBJ" &&
+  cd "$GLIBC_OBJ"/ &&
   if ./config.status --version > /dev/null 2>&1; then :; else
     # `--build' has to be set to make sure that glibc is cross compiled.
     # TODO: --disable-multi-arch
@@ -282,8 +282,8 @@ if test -h "$SYS_ROOT"/lib/ld.so; then :; else
     if [ "$CROSS_GNU_REINSTALL_GLIBC" = n ]; then :; else
       # Force re-linking files once libgcc and libgcc_eh are available.  TODO: Is the
       # following enough?
-      rm -f "$GLIBC_SRC".obj/config.status
-#      rm -rf "$GLIBC_SRC".obj
+      rm -f "$GLIBC_OBJ"/config.status
+#      rm -rf "$GLIBC_OBJ"
     fi
   else
     # That indication file might already have been installed, but we do not yet
@@ -296,7 +296,7 @@ fi &&
 
 # Install the GNU Hurd's core libraries.
 
-cd "$HURD_SRC".obj &&
+cd "$HURD_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$HURD_SRC"/configure \
     --host="$TARGET" \
@@ -310,8 +310,8 @@ fi &&
   prefix="$SYS_ROOT""$CROSS_GNU_USR" \
   libihash-install &&
 
-mkdir -p "$LIBPTHREAD_SRC".obj &&
-cd "$LIBPTHREAD_SRC".obj &&
+mkdir -p "$LIBPTHREAD_OBJ" &&
+cd "$LIBPTHREAD_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   "$LIBPTHREAD_SRC"/configure \
     --host="$TARGET" \
@@ -326,7 +326,7 @@ fi &&
 
 # Install a complete cross GCC.
 
-cd "$GCC_SRC".obj &&
+cd "$GCC_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # TODO: At the moment we only configure for creating a C compiler.
   # GCC 4.1 (and also the newer ones without patching) don't default to
@@ -363,8 +363,8 @@ fi &&
 
 # TODO.  With $GLIBC_have_static_stubs, this may no longer be necessary, as per
 # id:"87txyoksdr.fsf@schwinge.name".
-mkdir -p "$GLIBC_SRC".obj &&
-cd "$GLIBC_SRC".obj &&
+mkdir -p "$GLIBC_OBJ" &&
+cd "$GLIBC_OBJ"/ &&
 if ./config.status --version > /dev/null 2>&1; then :; else
   # `--build' has to be set to make sure that glibc is cross compiled.
   # TODO: --disable-multi-arch
@@ -391,8 +391,8 @@ fi &&
 # Install a cross GDB, if requested.
 
 if test -d "$GDB_SRC"/; then
-  mkdir -p "$GDB_SRC".obj &&
-  cd "$GDB_SRC".obj &&
+  mkdir -p "$GDB_OBJ" &&
+  cd "$GDB_OBJ"/ &&
   if ./config.status --version > /dev/null 2>&1; then :; else
     "$GDB_SRC"/configure \
       --target="$TARGET" \
