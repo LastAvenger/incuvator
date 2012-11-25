@@ -11,6 +11,12 @@
 
 int using_std = 1;
 
+static void
+start_ds_server (void *arg)
+{
+	ds_server (arg);
+}
+
 int main(int argc, char **argv)
 {
 	check_kernel();
@@ -28,7 +34,7 @@ int main(int argc, char **argv)
 	mach_device_init();
 	trivfs_init();
 
-	cthread_detach (cthread_fork (ds_server, NULL));
+	ddekit_thread_create (start_ds_server, NULL, "ds_server");
 	trivfs_server();
 
 	return 0;
