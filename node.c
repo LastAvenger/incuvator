@@ -41,7 +41,7 @@
 /*---------------------------------------------------------------------------*/
 /*--------Global Variables---------------------------------------------------*/
 /*The lock protecting the underlying filesystem*/
-struct mutex ulfs_lock = MUTEX_INITIALIZER;
+pthread_mutex_t ulfs_lock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -125,7 +125,7 @@ error_t node_init_root (mach_port_t underlying,	/*the port to the
   error_t err = 0;
 
   /*Acquire a lock for operations on the underlying filesystem */
-  mutex_lock (&ulfs_lock);
+  pthread_mutex_lock (&ulfs_lock);
 
   /*Store the specified port in the node */
   node->nn->port = underlying;
@@ -142,12 +142,12 @@ error_t node_init_root (mach_port_t underlying,	/*the port to the
       LOG_MSG ("node_init_root: Could not stat the root node.");
 
       /*unlock the mutex and exit */
-      mutex_unlock (&ulfs_lock);
+      pthread_mutex_unlock (&ulfs_lock);
       return err;
     }
 
   /*Release the lock for operations on the undelying filesystem */
-  mutex_unlock (&ulfs_lock);
+  pthread_mutex_unlock (&ulfs_lock);
 
   /*Return the result of operations */
   return err;

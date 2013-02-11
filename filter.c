@@ -84,7 +84,7 @@ error_t
   LOG_MSG ("netfs_attempt_create_file");
 
   /*Unlock `dir` and say that we can do nothing else here */
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }				/*netfs_attempt_create_file */
 
@@ -230,7 +230,7 @@ error_t
   LOG_MSG ("netfs_attempt_lookup: '%s'", name);
 
   /*Unlock the mutexes in `dir` */
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }				/*netfs_attempt_lookup */
 
@@ -418,7 +418,7 @@ error_t
   LOG_MSG ("netfs_attempt_mkfile");
 
   /*Unlock the directory */
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   /*Operation not supported */
   return EOPNOTSUPP;
@@ -504,7 +504,7 @@ kern_return_t
   node_t *np = user->po->np;
 
   /*Lock the node */
-  mutex_lock (&np->lock);
+  pthread_mutex_lock (&np->lock);
 
   /*Check if the user is the owner of this node */
   err = fshelp_isowner (&np->nn_stat, user->user);
@@ -525,7 +525,7 @@ kern_return_t
     *cntltype = MACH_MSG_TYPE_MOVE_SEND;
 
   /*Unlock the node */
-  mutex_unlock (&np->lock);
+  pthread_mutex_unlock (&np->lock);
 
   /*Return the result of operations */
   return err;
