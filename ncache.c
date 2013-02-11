@@ -59,7 +59,7 @@ void ncache_init (void)
   ncache.size_current = 0;
 
   /*Init the lock */
-  mutex_init (&ncache.lock);
+  pthread_mutex_init (&ncache.lock, NULL);
 }				/*ncache_init */
 
 /*---------------------------------------------------------------------------*/
@@ -90,7 +90,7 @@ error_t ncache_node_lookup (lnode_t * lnode,	/*search for this */
   if (!err)
     {
       /*lock the mutex in the looked up node */
-      mutex_lock (&n->lock);
+      pthread_mutex_lock (&n->lock);
 
       /*store the lookup result in `node` */
       *node = n;
@@ -146,14 +146,14 @@ ncache_reset (void)
   node_t *node;
 
   /*Acquire a lock on the cache */
-  mutex_lock (&ncache.lock);
+  pthread_mutex_lock (&ncache.lock);
 
   /*Release the whole cache chain */
   for (node = ncache.mru; node != NULL;
        ncache_node_remove (node), node = ncache.mru);
 
   /*Release the lock */
-  mutex_unlock (&ncache.lock);
+  pthread_mutex_unlock (&ncache.lock);
 }				/*ncache_reset */
 
 /*---------------------------------------------------------------------------*/
@@ -161,7 +161,7 @@ ncache_reset (void)
 void ncache_node_add (node_t * node)
 {
   /*Acquire a lock on the cache */
-  mutex_lock (&ncache.lock);
+  pthread_mutex_lock (&ncache.lock);
 
   /*If there already are some nodes in the cache already */
   if (ncache.size_current > 0)
@@ -216,7 +216,7 @@ void ncache_node_add (node_t * node)
      } */
 
   /*Release the lock on the cache */
-  mutex_unlock (&ncache.lock);
+  pthread_mutex_unlock (&ncache.lock);
 }				/*ncache_node_add */
 
 /*---------------------------------------------------------------------------*/

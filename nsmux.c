@@ -80,7 +80,7 @@ error_t
   LOG_MSG ("netfs_attempt_create_file");
 
   /*Unlock `dir` and say that we can do nothing else here */
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }				/*netfs_attempt_create_file */
 
@@ -488,7 +488,7 @@ error_t
       err = netfs_validate_stat (dir, user);
       if (err)
 	{
-	  mutex_unlock (&dir->lock);
+	  pthread_mutex_unlock (&dir->lock);
 	  return err;
 	}
 
@@ -496,7 +496,7 @@ error_t
       if (!S_ISDIR (dir->nn_stat.st_mode))
 	{
 	  /*unlock the directory and stop right here */
-	  mutex_unlock (&dir->lock);
+	  pthread_mutex_unlock (&dir->lock);
 	  return ENOTDIR;
 	}
 
@@ -514,7 +514,7 @@ error_t
       err = netfs_validate_stat (dir, user);
       if (err)
 	{
-	  mutex_unlock (&dir->lock);
+	  pthread_mutex_unlock (&dir->lock);
 	  return err;
 	}
 
@@ -522,7 +522,7 @@ error_t
       if (!S_ISDIR (dir->nn_stat.st_mode))
 	{
 	  /*unlock the directory and stop right here */
-	  mutex_unlock (&dir->lock);
+	  pthread_mutex_unlock (&dir->lock);
 	  return ENOTDIR;
 	}
 
@@ -544,7 +544,7 @@ error_t
 	}
 
       /*unlock the directory */
-      mutex_unlock (&dir->lock);
+      pthread_mutex_unlock (&dir->lock);
 
       /*stop here */
       return err;
@@ -576,15 +576,15 @@ error_t
     if (*node)
       {
 	/*unlock the node */
-	mutex_unlock (&(*node)->lock);
+	pthread_mutex_unlock (&(*node)->lock);
 
 	/*add the node to the cache */
 	ncache_node_add (*node);
       }
 
     /*Unlock the mutexes in `dir` */
-    mutex_unlock (&dir->nn->lnode->lock);
-    mutex_unlock (&dir->lock);
+    pthread_mutex_unlock (&dir->nn->lnode->lock);
+    pthread_mutex_unlock (&dir->lock);
   }				/*finalize */
 
   /*Performs a usual lookup */
@@ -689,7 +689,7 @@ error_t
     if (err)
       {
 	/*stop */
-	mutex_unlock (&lnode->lock);
+	pthread_mutex_unlock (&lnode->lock);
 	finalize ();
 	return err;
       }
@@ -707,13 +707,13 @@ error_t
     err = lnode_path_construct (lnode, NULL);
     if (err)
       {
-	mutex_unlock (&lnode->lock);
+	pthread_mutex_unlock (&lnode->lock);
 	finalize ();
 	return err;
       }
 
     /*Unlock the lnode */
-    mutex_unlock (&lnode->lock);
+    pthread_mutex_unlock (&lnode->lock);
 
     /*Now the node is up-to-date */
     (*node)->nn->flags = FLAG_NODE_ULFS_UPTODATE;
@@ -810,13 +810,13 @@ error_t
       /* Set things up in the state expected by the code from gotit: on. */
       dnp = 0;
       np = diruser->po->np;
-      mutex_lock (&np->lock);
+      pthread_mutex_lock (&np->lock);
       netfs_nref (np);
       goto gotit;
     }
 
   dnp = diruser->po->np;
-  mutex_lock (&dnp->lock);
+  pthread_mutex_lock (&dnp->lock);
 
   netfs_nref (dnp);		/* acquire a reference for later netfs_nput */
 
@@ -861,7 +861,7 @@ error_t
 	    if (!lastcomp)
 	      strcpy (retry_name, nextname);
 	    error = 0;
-	    mutex_unlock (&dnp->lock);
+	    pthread_mutex_unlock (&dnp->lock);
 	    goto out;
 	  }
 	else if (diruser->po->root_parent != MACH_PORT_NULL)
@@ -875,7 +875,7 @@ error_t
 	    if (!lastcomp)
 	      strcpy (retry_name, nextname);
 	    error = 0;
-	    mutex_unlock (&dnp->lock);
+	    pthread_mutex_unlock (&dnp->lock);
 	    goto out;
 	  }
 	else
@@ -908,7 +908,7 @@ error_t
 		  np = dnp;
 		  netfs_nref (np);
 
-		  mutex_unlock (&np->lock);
+		  pthread_mutex_unlock (&np->lock);
 
 		  /*`np` is a proxy node of the lower translator. We
 		    have to create a shadow node explicitly. */
@@ -927,7 +927,7 @@ error_t
 
 		  /*`np` is supposed to be unlocked by the following
 		    code. */
-		  mutex_unlock (&np->lock);
+		  pthread_mutex_unlock (&np->lock);
 		}
 	      else
 		  /*lookup the file in the real filesystem */ 
@@ -1056,7 +1056,7 @@ error_t
 	{
 	  mode &= ~(S_IFMT | S_ISPARE | S_ISVTX);
 	  mode |= S_IFREG;
-	  mutex_lock (&dnp->lock);
+	  pthread_mutex_lock (&dnp->lock);
 	  error = netfs_attempt_create_file (diruser->user, dnp,
 					     filename, mode, &np);
 
@@ -1065,7 +1065,7 @@ error_t
 	     EXCL, that's fine; otherwise, we have to retry the lookup. */
 	  if (error == EEXIST && !excl)
 	    {
-	      mutex_lock (&dnp->lock);
+	      pthread_mutex_lock (&dnp->lock);
 	      goto retry_lookup;
 	    }
 
@@ -1235,7 +1235,7 @@ error_t
 	      create = 0;
 	    }
 	  netfs_nput (np);
-	  mutex_lock (&dnp->lock);
+	  pthread_mutex_lock (&dnp->lock);
 	  np = 0;
 	}
       else
@@ -1522,7 +1522,7 @@ error_t
   LOG_MSG ("netfs_attempt_mkfile");
 
   /*Unlock the directory */
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   /*Operation not supported */
   return EOPNOTSUPP;
@@ -1613,7 +1613,7 @@ kern_return_t
     }
 
   /*Lock the node */
-  mutex_lock (&np->lock);
+  pthread_mutex_lock (&np->lock);
 
   /*Check if the user is the owner of this node */
   err = fshelp_isowner (&np->nn_stat, user->user);
@@ -1634,7 +1634,7 @@ kern_return_t
     *cntltype = MACH_MSG_TYPE_MOVE_SEND;
 
   /*Unlock the node */
-  mutex_unlock (&np->lock);
+  pthread_mutex_unlock (&np->lock);
 
   /*Return the result of operations */
   return err;
@@ -1654,10 +1654,10 @@ netfs_shutdown (int flags)
       err = fshelp_fetch_control (&node->transbox, &control);
       if (!err && (control != MACH_PORT_NULL))
         {
-          mutex_unlock (&node->lock);
+          pthread_mutex_unlock (&node->lock);
           err = fsys_goaway (control, flags);
           mach_port_deallocate (mach_task_self (), control);
-          mutex_lock (&node->lock);
+          pthread_mutex_lock (&node->lock);
         }
       else
         err = 0;
@@ -1691,7 +1691,7 @@ netfs_shutdown (int flags)
     }
 
 #ifdef NOTYET
-  rwlock_writer_lock (&netfs_fsys_lock);
+  pthread_rwlock_wrlock (&netfs_fsys_lock);
 #endif
 
   /* Permit all current RPC's to finish, and then suspend any new ones.  */
@@ -1699,7 +1699,7 @@ netfs_shutdown (int flags)
   if (err)
     {
 #ifdef  NOTYET
-      rwlock_writer_unlock (&netfs_fsys_lock);
+      pthread_rwlock_unlock (&netfs_fsys_lock);
 #endif
       return err;
     }
@@ -1711,7 +1711,7 @@ netfs_shutdown (int flags)
       ports_enable_class (netfs_protid_class);
       ports_resume_class_rpcs (netfs_protid_class);
 #ifdef NOTYET
-      rwlock_writer_unlock (&netfs_fsys_lock);
+      pthread_rwlock_unlock (&netfs_fsys_lock);
 #endif
       return EBUSY;
     }

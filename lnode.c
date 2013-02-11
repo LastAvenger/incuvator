@@ -61,7 +61,7 @@ void lnode_ref_remove (lnode_t * node)
     }
   else
     /*simply unlock the node */
-    mutex_unlock (&node->lock);
+    pthread_mutex_unlock (&node->lock);
 }				/*lnode_ref_remove */
 
 /*---------------------------------------------------------------------------*/
@@ -108,8 +108,8 @@ error_t lnode_create (char *name, lnode_t ** node)
   node_new->references = 1;
 
   /*Initialize the mutex and acquire a lock on this lnode */
-  mutex_init (&node_new->lock);
-  mutex_lock (&node_new->lock);
+  pthread_mutex_init (&node_new->lock, NULL);
+  pthread_mutex_lock (&node_new->lock);
 
   /*Store the result in the second parameter */
   *node = node_new;
@@ -239,7 +239,7 @@ error_t lnode_get (lnode_t * dir,	/*search here */
   if (n)
     {
       /*lock the node */
-      mutex_lock (&n->lock);
+      pthread_mutex_lock (&n->lock);
 
       /*increment the refcount of the found lnode */
       lnode_ref_add (n);
@@ -338,7 +338,7 @@ void lnode_remove_proxy (lnode_t * node, node_t * proxy)
   node_list_t p;
 
   /*Lock the lnode */
-  mutex_lock (&node->lock);
+  pthread_mutex_lock (&node->lock);
 
   /*If the first cell in the list contains a reference to `proxy` */
   if (node->proxies->node == proxy)
@@ -356,7 +356,7 @@ void lnode_remove_proxy (lnode_t * node, node_t * proxy)
       lnode_ref_remove (node);
 
       /*stop right here */
-      mutex_unlock (&node->lock);
+      pthread_mutex_unlock (&node->lock);
       return;
     }
 
@@ -389,7 +389,7 @@ void lnode_remove_proxy (lnode_t * node, node_t * proxy)
 
 
   /*Unlock the node */
-  mutex_unlock (&node->lock);
+  pthread_mutex_unlock (&node->lock);
 
   return;
 }				/*lnode_remove_proxy */

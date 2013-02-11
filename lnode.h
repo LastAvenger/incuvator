@@ -90,7 +90,7 @@ struct lnode
   struct lnode *entries;
 
   /*the lock, protecting this lnode */
-  struct mutex lock;
+  pthread_mutex_t lock;
 };				/*struct lnode */
 /*---------------------------------------------------------------------------*/
 typedef struct lnode lnode_t;

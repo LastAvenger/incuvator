@@ -59,7 +59,7 @@ struct ncache
   int size_current;
 
   /*a lock */
-  struct mutex lock;
+  pthread_mutex_t lock;
 };				/*struct ncache */
 /*---------------------------------------------------------------------------*/
 typedef struct ncache ncache_t;

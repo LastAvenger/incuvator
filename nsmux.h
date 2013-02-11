@@ -28,7 +28,7 @@
 /*---------------------------------------------------------------------------*/
 #include <stddef.h>
 #include <stdlib.h>
-#include <cthreads.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
