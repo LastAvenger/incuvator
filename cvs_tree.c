@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "cvs_connect.h"
 #include "cvs_tree.h"
@@ -270,7 +271,7 @@ cvs_tree_enqueue(struct netnode *dir, const char *path)
   new->fileno = next_fileno ++;
   new->node = NULL;
 
-  rwlock_init(&new->lock);
+  pthread_rwlock_init(&new->lock, NULL);
   
   if(parent)
     parent->child = new;
@@ -297,12 +298,12 @@ cvs_tree_enqueue_file(struct netnode *cwd,
     {
       struct revision *cached_rev;
 
-      rwlock_writer_lock(&entry->lock);
+      pthread_rwlock_wrlock(&entry->lock);
       cached_rev = entry->revision;
 
       if(! (entry->revision = malloc(sizeof(*entry->revision))))
 	{
-	  rwlock_writer_unlock(&entry->lock);
+	  pthread_rwlock_unlock(&entry->lock);
 	  return ENOMEM; /* pray for cvsfs to survive! */
 	}
 
@@ -310,8 +311,8 @@ cvs_tree_enqueue_file(struct netnode *cwd,
       entry->revision->contents = NULL;
       entry->revision->next = cached_rev;
 
-      rwlock_init(&entry->revision->lock);
-      rwlock_writer_unlock(&entry->lock);
+      pthread_rwlock_init(&entry->revision->lock, NULL);
+      pthread_rwlock_unlock(&entry->lock);
 
       return 0;
     }
@@ -325,13 +326,13 @@ cvs_tree_enqueue_file(struct netnode *cwd,
 	/* okay, we already got a netnode for file 'filename', check whether
 	 * revision information is up to date ...
 	 */
-	rwlock_reader_lock(&entry->lock);
+	pthread_rwlock_rdlock(&entry->lock);
 	if(! strcmp(revision, entry->revision->id))
 	  {
-	    rwlock_reader_unlock(&entry->lock);
+	    pthread_rwlock_unlock(&entry->lock);
 	    return 0; /* head revision id hasn't changed ... */
 	  }
-	rwlock_reader_unlock(&entry->lock);
+	pthread_rwlock_unlock(&entry->lock);
 
 	/* okay, create new revision struct */
 	if(cvs_tree_add_rev_struct(entry, revision))
@@ -360,7 +361,7 @@ cvs_tree_enqueue_file(struct netnode *cwd,
    * to somewhere and this is the only thread to update tree info,
    * we don't have to write lock to access entry->revision!
    */
-  rwlock_init(&entry->lock);
+  pthread_rwlock_init(&entry->lock, NULL);
 
   entry->revision = NULL;
   if(cvs_tree_add_rev_struct(entry, revision))

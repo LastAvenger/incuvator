@@ -49,9 +49,9 @@ netfs_validate_stat (struct node *node, struct iouser *cred)
       if(! node->nn->revision->contents)
 	{
 	  /* head revision not available locally yet, retrieve it ... */
-	  rwlock_writer_lock(&node->nn->revision->lock);
+	  pthread_rwlock_wrlock(&node->nn->revision->lock);
 	  cvs_files_cache(node->nn, node->nn->revision);
-	  rwlock_writer_unlock(&node->nn->revision->lock);
+	  pthread_rwlock_unlock(&node->nn->revision->lock);
 	}
 
       if(node->nn->revision->contents)
@@ -105,7 +105,7 @@ netfs_attempt_create_file (struct iouser *user, struct node *dir,
   FUNC_PROLOGUE_FMT("netfs_attempt_create_file", "name=%s", name);
 
   *node = 0;
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   FUNC_EPILOGUE(EROFS);
 }
@@ -225,7 +225,7 @@ error_t netfs_attempt_mkfile (struct iouser *user, struct node *dir,
   FUNC_PROLOGUE("netfs_attempt_mkfile");
 
   *node = 0;
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   FUNC_EPILOGUE(EROFS);
 }
@@ -379,14 +379,14 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
       /* read-lock the real netnode - not the virtual one - what wouldn't
        * make much sense.
        */
-      rwlock_reader_lock(&nn->lock);
+      pthread_rwlock_rdlock(&nn->lock);
       rev = dir->nn->revision;
 
       for(; rev; rev = rev->next)
 	if(! strcmp(rev->id, name))
 	  break;
 
-      rwlock_reader_unlock(&nn->lock);
+      pthread_rwlock_unlock(&nn->lock);
 
       if(! rev && (rev = malloc(sizeof(*rev))))
 	{
@@ -396,7 +396,7 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
 	  rev->id = strdup(name);
 	  rev->contents = NULL;
 	  rev->next = NULL;
-	  rwlock_init(&rev->lock);
+	  pthread_rwlock_init(&rev->lock, NULL);
 
 	  if(cvs_files_hit(nn, rev))
 	    {
@@ -408,12 +408,12 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
 	  else
 	    {
 	      /* okay, went well, enqueue into revisions chain */
-	      rwlock_writer_lock(&nn->lock);
+	      pthread_rwlock_wrlock(&nn->lock);
 
 	      rev->next = nn->revision->next;
 	      nn->revision->next = rev;
 
-	      rwlock_writer_unlock(&nn->lock);
+	      pthread_rwlock_unlock(&nn->lock);
 	    }
 	}
 
@@ -432,7 +432,7 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
 	    err = 0; /* hey, we got it! */
 
 	    spin_lock(&netfs_node_refcnt_lock);
-	    /* rwlock_reader_lock(&nn->lock);
+	    /* pthread_rwlock_rdlock(&nn->lock);
 	     * we don't have to lock nn->lock since it's ref cannot become
 	     * invalid as we hold netfs_node_refcnt_lock
 	     */
@@ -441,7 +441,7 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
 	      (*node)->references ++;
 
 	    spin_unlock(&netfs_node_refcnt_lock);
-	    /* rwlock_reader_unlock(&nn->lock); */
+	    /* pthread_rwlock_unlock(&nn->lock); */
 
 	    if(! *node)
 	      *node = cvsfs_make_node(nn);
@@ -453,12 +453,12 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
   if(! err)
     fshelp_touch(&(*node)->nn_stat, TOUCH_ATIME, cvsfs_maptime);
 
-  mutex_unlock(&dir->lock);
+  pthread_mutex_unlock(&dir->lock);
 
   if(err)
     *node = NULL;
   else
-    mutex_lock(&(*node)->lock);
+    pthread_mutex_lock(&(*node)->lock);
 
   FUNC_EPILOGUE(err);
 }
@@ -613,8 +613,8 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
       return EISDIR;
     }
 
-  rwlock_reader_lock(&node->nn->lock);
-  rwlock_reader_lock(&node->nn->revision->lock);
+  pthread_rwlock_rdlock(&node->nn->lock);
+  pthread_rwlock_rdlock(&node->nn->revision->lock);
 
   if(! node->nn->revision->contents) 
     {
@@ -626,14 +626,14 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
        */
 
       /* oops, we need a writer lock ... */
-      rwlock_reader_unlock(&node->nn->revision->lock);
-      rwlock_writer_lock(&node->nn->revision->lock);
+      pthread_rwlock_unlock(&node->nn->revision->lock);
+      pthread_rwlock_wrlock(&node->nn->revision->lock);
 
       if(cvs_files_cache(node->nn->parent ? node->nn : node->nn->child,
 			 node->nn->revision))
 	{
-	  rwlock_writer_unlock(&node->nn->revision->lock);
-	  rwlock_reader_unlock(&node->nn->lock);
+	  pthread_rwlock_unlock(&node->nn->revision->lock);
+	  pthread_rwlock_unlock(&node->nn->lock);
 	  *len = 0;
 	  return EIO;
 	}
@@ -641,8 +641,8 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
       /* TODO consider whether there's a nicer way, so that we don't have
        * to relock two times 
        */
-      rwlock_writer_unlock(&node->nn->revision->lock);
-      rwlock_reader_lock(&node->nn->revision->lock);
+      pthread_rwlock_unlock(&node->nn->revision->lock);
+      pthread_rwlock_rdlock(&node->nn->revision->lock);
     }
 
   maxlen = node->nn->revision->length;
@@ -651,8 +651,8 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
     {
       /* trying to read beyond of file, cowardly refuse to do so ... */
       *len = 0;
-      rwlock_reader_unlock(&node->nn->revision->lock);
-      rwlock_reader_unlock(&node->nn->lock);
+      pthread_rwlock_unlock(&node->nn->revision->lock);
+      pthread_rwlock_unlock(&node->nn->lock);
       return 0;
     }
 
@@ -660,8 +660,8 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
     *len = maxlen - offset;
 
   memcpy(data, node->nn->revision->contents + offset, *len);
-  rwlock_reader_unlock(&node->nn->revision->lock);
-  rwlock_reader_unlock(&node->nn->lock);
+  pthread_rwlock_unlock(&node->nn->revision->lock);
+  pthread_rwlock_unlock(&node->nn->lock);
 
   FUNC_EPILOGUE(0);
 }
@@ -765,9 +765,9 @@ netfs_node_norefs (struct node *node)
   /* the node will be freed, therefore our nn->node pointer will not
    * be valid any longer, therefore reset it 
    */
-  rwlock_writer_lock(&node->nn->lock);
+  pthread_rwlock_wrlock(&node->nn->lock);
   node->nn->node = NULL;
-  rwlock_writer_unlock(&node->nn->lock);
+  pthread_rwlock_unlock(&node->nn->lock);
 
   if(node->nn->revision && !node->nn->parent)
     /* node is a virtual node, therefore we need to free the netnode */

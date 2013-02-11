@@ -14,11 +14,11 @@
 #ifndef CVSFS_CONFIG_H
 #define CVSFS_CONFIG_H
 
+#include <sys/types.h>
 #include <maptime.h>
 extern volatile struct mapped_time_value *cvsfs_maptime;
 
 #include <stdio.h>
-#include <rwlock.h>
 
 
 typedef struct {
@@ -92,7 +92,7 @@ struct revision {
   /* locking mechanism for the revision structure, needs to be held,
    * on read/write access to contents field.
    */
-  struct rwlock lock;
+  pthread_rwlock_t lock;
 };
 
 
@@ -133,7 +133,7 @@ struct netnode {
    *
    * furthermore access to node pointer must be locked.
    */
-  struct rwlock lock;
+  pthread_rwlock_t lock;
 };
 
 /* pointer to root netnode */

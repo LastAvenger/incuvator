@@ -35,24 +35,24 @@ cvsfs_make_node(struct netnode *nn)
 {
   struct node *node;
 
-  rwlock_writer_lock(&nn->lock);
+  pthread_rwlock_wrlock(&nn->lock);
 
   if(nn->node) 
     {
       /* there already is a node structure, just return another reference
        * to this one, instead of wasting memory for yet another one
        */
-      mutex_lock(&nn->node->lock);
+      pthread_mutex_lock(&nn->node->lock);
       netfs_nref(nn->node);
-      mutex_unlock(&nn->node->lock);
+      pthread_mutex_unlock(&nn->node->lock);
 
-      rwlock_writer_unlock(&nn->lock);
+      pthread_rwlock_unlock(&nn->lock);
       return nn->node;
     }
 
   if(! (node = netfs_make_node(nn)))
     {
-      rwlock_writer_unlock(&nn->lock);
+      pthread_rwlock_unlock(&nn->lock);
       return NULL;
     }
 
@@ -124,7 +124,7 @@ cvsfs_make_node(struct netnode *nn)
   node->nn_stat.st_mode &= ~(S_IWUSR | S_IWGRP | S_IWOTH);
 
   nn->node = node;
-  rwlock_writer_unlock(&nn->lock);
+  pthread_rwlock_unlock(&nn->lock);
 
   return node;
 }
@@ -148,7 +148,7 @@ cvsfs_make_virtual_node(struct netnode *nn, struct revision *rev)
   if(! new_nn)
     return NULL;
 
-  rwlock_init(&new_nn->lock);
+  pthread_rwlock_init(&new_nn->lock, NULL);
 
   new_nn->sibling = NULL;
   new_nn->parent = NULL;

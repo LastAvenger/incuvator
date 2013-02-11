@@ -16,10 +16,11 @@ AM_INIT_AUTOMAKE(cvsfs, 0.2)
 AC_PROG_CC
 
 # Checks for libraries.
-AC_CHECK_LIB([threads], [rwlock_init])
+AC_CHECK_LIB([pthread], [pthread_rwlock_init])
 AC_CHECK_LIB([ports], [hurd_ihash_init])
 AC_CHECK_LIB([fshelp], [fshelp_touch])
 AC_CHECK_LIB([iohelp], [iohelp_initialize_conch])
+AC_CHECK_LIB([shouldbeinlibc], [maptime_map])
 #AC_CHECK_LIB([netfs], [netfs_startup])
 
 # Check whether zlib compression is available
