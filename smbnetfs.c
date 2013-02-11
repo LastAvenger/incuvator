@@ -28,7 +28,7 @@
 #include <dirent.h>
 #include <sys/time.h>
 #include <maptime.h>
-#include <cthreads.h>
+#include <pthread.h>
 
 /* Returned directory entries are aligned to blocks this many bytes long.
    Must be a power of two.  */
@@ -46,7 +46,7 @@ struct smb_credentials credentials =
   };
 
 static volatile struct mapped_time_value *maptime;
-static struct mutex smb_mutex;
+static pthread_mutex_t smb_mutex;
 
 char *netfs_server_name = "smbfs";
 char *netfs_server_version = "0.1";
@@ -208,9 +208,9 @@ add_node (char *filename, struct node *top, struct netnode **nn)
     newnode = n->node;
 
   /* Make sure FILENAME actually exists.  */
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_stat (n->abs_file_name, &n->node->nn_stat);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (err != 0)
     {
@@ -231,9 +231,9 @@ netfs_validate_stat (struct node *np, struct iouser *cred)
   np->nn_stat = empty_stat ();
   np->nn_stat.st_ino = (uintptr_t) np >> 3UL;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   int err = smbc_stat (np->nn->abs_file_name, &np->nn_stat);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   if (err)
     return errno;
 
@@ -259,9 +259,9 @@ error_t
 netfs_attempt_chmod (struct iouser * cred, struct node * np, mode_t mode)
 {
   int err;
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_chmod (np->nn->abs_file_name, mode);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (err)
     return errno;
@@ -311,9 +311,9 @@ netfs_attempt_utimes (struct iouser * cred, struct node * np,
   else
     maptime_read (maptime, &tv);
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_utimes (np->nn->abs_file_name, &tv);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if(err)
     return errno;
@@ -326,18 +326,18 @@ netfs_attempt_set_size (struct iouser *cred, struct node *np, loff_t size)
 {
   int fd, ret, saved_errno;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   fd = smbc_open (np->nn->abs_file_name, O_WRONLY, 0);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (fd < 0)
     return errno;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   ret = smbc_ftruncate (fd, size);
   saved_errno = ret != 0 ? errno : 0;
   smbc_close (fd);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   return saved_errno;
 }
@@ -372,7 +372,7 @@ netfs_attempt_lookup (struct iouser * user, struct node * dir, char *name,
     {
       netfs_nref (dir);/*Add a reference to current directory */
       *np = dir;
-      mutex_unlock (&dir->lock);
+      pthread_mutex_unlock (&dir->lock);
       return 0;
     }
   else if (strcmp (name, "..") == 0)	/*Parent directory */
@@ -394,11 +394,11 @@ netfs_attempt_lookup (struct iouser * user, struct node * dir, char *name,
           *np = 0;
         }
 
-      mutex_unlock (&dir->lock);
+      pthread_mutex_unlock (&dir->lock);
       return err;    
     }
 
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   err = add_node (name, dir, &n);
 
   if(err)
@@ -423,9 +423,9 @@ netfs_attempt_unlink (struct iouser * user, struct node * dir, char *name)
   if (!filename)
     return ENOMEM;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   error_t err = smbc_unlink (filename);
-  mutex_unlock (&smb_mutex);  
+  pthread_mutex_unlock (&smb_mutex);  
   
   free (filename);
 
@@ -454,9 +454,9 @@ netfs_attempt_rename (struct iouser * user, struct node * fromdir,
       return ENOMEM;
     }
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   error_t err = smbc_rename (filename, filename2);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   free (filename);
   free (filename2);
@@ -474,9 +474,9 @@ netfs_attempt_mkdir (struct iouser * user, struct node * dir, char *name,
   if (!filename)
     return ENOMEM;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_mkdir (filename, mode);
-  mutex_unlock (&smb_mutex);  
+  pthread_mutex_unlock (&smb_mutex);  
   
   free (filename);
   return err ? errno : 0;
@@ -492,9 +492,9 @@ netfs_attempt_rmdir (struct iouser * user, struct node * dir, char *name)
   if (!filename)
     return ENOMEM;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_rmdir (filename);
-  mutex_unlock (&smb_mutex);  
+  pthread_mutex_unlock (&smb_mutex);  
 
   free(filename);
   return err ? errno : 0;
@@ -511,7 +511,7 @@ error_t
 netfs_attempt_mkfile (struct iouser * user, struct node * dir, mode_t mode,
 		      struct node ** np)
 {
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }
 
@@ -530,28 +530,28 @@ netfs_attempt_create_file (struct iouser * user, struct node * dir,
   if (!filename)
     return ENOMEM;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   fd = smbc_open (filename, O_WRONLY | O_CREAT, mode);
   if (fd < 0)
     {
-      mutex_unlock (&smb_mutex);  
-      mutex_unlock (&dir->lock);
+      pthread_mutex_unlock (&smb_mutex);  
+      pthread_mutex_unlock (&dir->lock);
       return errno;
     }
   smbc_close (fd);
-  mutex_unlock (&smb_mutex);    
+  pthread_mutex_unlock (&smb_mutex);    
 
   err = add_node (name, dir, &nn);
 
   if (err)
     {
-      mutex_unlock (&dir->lock);
+      pthread_mutex_unlock (&dir->lock);
       return err;
     }
 
   *np = nn->node;
 
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return 0;
 }
 
@@ -568,9 +568,9 @@ netfs_check_open_permissions (struct iouser * user, struct node * np,
   error_t err;
   io_statbuf_t  nn_stat;
   
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_stat (np->nn->abs_file_name, &nn_stat);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
    
   if (err)
     return errno;
@@ -592,9 +592,9 @@ netfs_attempt_read (struct iouser * cred, struct node * np, loff_t offset,
   int fd;
   int ret = 0;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   fd = smbc_open (np->nn->abs_file_name, O_RDONLY, 0);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (fd < 0)
     {
@@ -602,36 +602,36 @@ netfs_attempt_read (struct iouser * cred, struct node * np, loff_t offset,
       return errno;
     }
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   ret = smbc_lseek (fd, offset, SEEK_SET);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   
   if ((ret < 0) || (ret != offset))
     {
       *len = 0;
-      mutex_lock (&smb_mutex);
+      pthread_mutex_lock (&smb_mutex);
       smbc_close (fd);
-      mutex_unlock (&smb_mutex);
+      pthread_mutex_unlock (&smb_mutex);
       return errno;
     }
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   ret = smbc_read (fd, data, *len);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (ret < 0)
     {
       *len = 0;
-      mutex_lock (&smb_mutex);
+      pthread_mutex_lock (&smb_mutex);
       smbc_close (fd);
-      mutex_unlock (&smb_mutex);
+      pthread_mutex_unlock (&smb_mutex);
       return errno;
     }
 
   *len = ret;
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   smbc_close (fd);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   return 0;
 }
 
@@ -642,44 +642,44 @@ netfs_attempt_write (struct iouser * cred, struct node * np, loff_t offset,
   int ret = 0;
   int fd;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   fd = smbc_open (np->nn->abs_file_name, O_WRONLY, 0);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (fd < 0)
     {
       *len = 0;
       return errno;
     }
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   ret = smbc_lseek (fd, offset, SEEK_SET);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   
   if ((ret < 0) || (ret != offset))
     {
       *len = 0;
-      mutex_lock (&smb_mutex);
+      pthread_mutex_lock (&smb_mutex);
       smbc_close (fd);
-      mutex_unlock (&smb_mutex);
+      pthread_mutex_unlock (&smb_mutex);
       return errno;
     }
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   ret = smbc_write (fd, data, *len);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   
   if (ret < 0)
     {
       *len = 0;
-      mutex_lock (&smb_mutex);
+      pthread_mutex_lock (&smb_mutex);
       smbc_close (fd);
-      mutex_unlock (&smb_mutex);      
+      pthread_mutex_unlock (&smb_mutex);      
       return errno;
     }
 
   *len = ret;
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   smbc_close (fd);
-  mutex_unlock (&smb_mutex);      
+  pthread_mutex_unlock (&smb_mutex);      
 
   return 0;
 }
@@ -728,16 +728,16 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
   if (!dir)
     return ENOTDIR;
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   dd = smbc_opendir (dir->nn->abs_file_name);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   
   if (dd < 0)
     return ENOTDIR;  
   
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err = smbc_lseekdir (dd, entry);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   
   if(err)
     {
@@ -745,9 +745,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
         {
           *datacnt = 0;
           *amt = 0;
-          mutex_lock (&smb_mutex);
+          pthread_mutex_lock (&smb_mutex);
           smbc_closedir (dd);
-          mutex_unlock (&smb_mutex);
+          pthread_mutex_unlock (&smb_mutex);
           return 0;
         }
       return errno;
@@ -771,9 +771,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 
   for(;;)
     {
-      mutex_lock (&smb_mutex);      
+      pthread_mutex_lock (&smb_mutex);      
       dirent = smbc_readdir (dd);
-      mutex_unlock (&smb_mutex);
+      pthread_mutex_unlock (&smb_mutex);
 
       if(!dirent)
         break;
@@ -790,15 +790,15 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 
   if (!(*data) ||  (*data == (void *) -1))
     {
-      mutex_lock (&smb_mutex);
+      pthread_mutex_lock (&smb_mutex);
       smbc_closedir(dd);
-      mutex_unlock (&smb_mutex);
+      pthread_mutex_unlock (&smb_mutex);
       return ENOMEM;    
     }
 
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   err=smbc_lseekdir (dd, entry);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
 
   if (err)
     {
@@ -806,9 +806,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
         {
           *datacnt = 0;
           *amt = 0;
-          mutex_lock (&smb_mutex);
+          pthread_mutex_lock (&smb_mutex);
           smbc_closedir (dd);
-          mutex_unlock (&smb_mutex);
+          pthread_mutex_unlock (&smb_mutex);
           return 0;
         }
 
@@ -850,9 +850,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
  
     for(;;)
       {
-        mutex_lock (&smb_mutex);
+        pthread_mutex_lock (&smb_mutex);
         dirent = smbc_readdir (dd);
-        mutex_unlock (&smb_mutex);
+        pthread_mutex_unlock (&smb_mutex);
         if (!dirent)
           break;
         int type = 0;
@@ -865,9 +865,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 
         if (!strcmp (dirent->name, "."))
           {
-            mutex_lock (&smb_mutex);
+            pthread_mutex_lock (&smb_mutex);
             err = smbc_stat (dir->nn->abs_file_name, &st);
-            mutex_unlock (&smb_mutex);
+            pthread_mutex_unlock (&smb_mutex);
           }
         else if (!strcmp (dirent->name, ".."))
           {
@@ -883,9 +883,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 	    if (stat_file_name == NULL)
 	      return ENOMEM;
 
-            mutex_lock (&smb_mutex);
+            pthread_mutex_lock (&smb_mutex);
             err = smbc_stat (stat_file_name, &st);
-            mutex_unlock (&smb_mutex);
+            pthread_mutex_unlock (&smb_mutex);
 
 	    if (err)
 	      {
@@ -897,9 +897,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 
         if (err)
           {
-            mutex_lock (&smb_mutex);
+            pthread_mutex_lock (&smb_mutex);
             smbc_closedir(dd);
-            mutex_unlock (&smb_mutex);
+            pthread_mutex_unlock (&smb_mutex);
             return errno;
           }
 
@@ -910,9 +910,9 @@ netfs_get_dirents (struct iouser *cred, struct node *dir, int entry,
 
   *datacnt = size;
   *amt = nreturningentries;
-  mutex_lock (&smb_mutex);
+  pthread_mutex_lock (&smb_mutex);
   smbc_closedir (dd);
-  mutex_unlock (&smb_mutex);
+  pthread_mutex_unlock (&smb_mutex);
   return 0;
 }
 
@@ -931,5 +931,5 @@ smbfs_init ()
 void
 smbfs_terminate ()
 {
-  mutex_init (&smb_mutex);
+  pthread_mutex_init (&smb_mutex, NULL);
 }
