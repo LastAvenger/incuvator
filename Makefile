@@ -22,7 +22,7 @@ CFLAGS = -g -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INSTALL = install
 
 netio: main.o netfs.o node.o lib.o protocol.o
-	gcc $(CFLAGS) -lnetfs -lfshelp -liohelp -lthreads -lports \
+	gcc $(CFLAGS) -lnetfs -lfshelp -liohelp -lpthread -lports \
 	  -lihash -lshouldbeinlibc \
           -o netio main.o netfs.o node.o lib.o protocol.o
 

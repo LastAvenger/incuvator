@@ -89,11 +89,11 @@ netfs_attempt_lookup (struct iouser *user, struct node *dir,
 
  out:
   fshelp_touch (&dir->nn_stat, TOUCH_ATIME, netio_maptime);
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   if (err)
     *node = 0;
   else
-    mutex_lock (&(*node)->lock);
+    pthread_mutex_lock (&(*node)->lock);
   return err;
 }
 
@@ -335,7 +335,7 @@ netfs_attempt_create_file (struct iouser *user, struct node *dir,
 			   char *name, mode_t mode, struct node **np)
 {
   *np = 0;
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }
 
@@ -628,11 +628,11 @@ netfs_S_io_read (struct protid *user,
 	return err;
     }
 
-  mutex_lock (&user->po->np->lock);
+  pthread_mutex_lock (&user->po->np->lock);
 
   if ((user->po->openstat & O_READ) == 0)
     {
-      mutex_unlock (&node->lock);
+      pthread_mutex_unlock (&node->lock);
       return EBADF;
     }
 
@@ -680,7 +680,7 @@ netfs_S_io_read (struct protid *user,
   if (offset == -1 && !err)
     user->po->filepointer += *datalen;
 
-  mutex_unlock (&node->lock);
+  pthread_mutex_unlock (&node->lock);
 
   if (err && alloced)
     munmap (*data, amount);
