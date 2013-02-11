@@ -26,10 +26,10 @@
 #include <errno.h>
 #include <error.h>
 #include <string.h>
-#include <cthreads.h>
+#include <pthread.h>
 
 
-static struct mutex debug_lock;
+static pthread_mutex_t debug_lock;
 static char *debug_function = NULL;
 static FILE *debug_file = NULL;
 
@@ -54,7 +54,7 @@ __debug_start (const char *function)
   if (!debug_file)
     return;
 
-  mutex_lock (&debug_lock);
+  pthread_mutex_lock (&debug_lock);
   debug_function = strdup (function);
 }
 
@@ -84,5 +84,5 @@ __debug_end ()
   free (debug_function);
   debug_function = NULL;
   fflush (debug_file);
-  mutex_unlock (&debug_lock);
+  pthread_mutex_unlock (&debug_lock);
 }

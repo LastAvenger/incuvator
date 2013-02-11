@@ -29,7 +29,7 @@ CFLAGS += -DDEBUG_ZIP # zip stores debugging
 # Note: -lz has to be first otherwise inflate() will be the exec server's
 #       inflate function
 LDFLAGS = -L~ -lz -L. -lnetfs -lfshelp -liohelp -lports \
-          -lihash -lshouldbeinlibc -lthreads -lstore -lbz2 #-lpthread
+          -lihash -lshouldbeinlibc -lpthread -lstore -lbz2
 CTAGS   = ctags
 
 SRC     = main.c netfs.c tarfs.c tarlist.c fs.c cache.c tar.c names.c \

@@ -22,6 +22,8 @@
 # error "Don't try to compile this file directly."
 #endif
 
+#include <pthread.h>
+
 /* Stringification macros stolen from libstore's unzipstores.c */
 
 #define STRINGIFY(name) STRINGIFY_1(name)
@@ -97,7 +99,7 @@ struct stream_state
 #endif
 
   /* Stream lock */
-  struct mutex lock;
+  pthread_mutex_t lock;
 };
 
 /* Zip object information */
@@ -136,7 +138,7 @@ struct ZIP (object)
     size_t size;
 
     /* Cache lock */
-    struct mutex lock;
+    pthread_mutex_t lock;
   } cache;
 };
 
@@ -209,7 +211,7 @@ ZIP (stream_read_init) (struct ZIP (object) *zip)
   int zerr;
   ZIP_STREAM *stream = &zip->read.stream;
 
-  mutex_lock (&zip->read.lock);
+  pthread_mutex_lock (&zip->read.lock);
 
   /* Check whether STREAM had already been initialized */
   if (stream->state)
@@ -238,7 +240,7 @@ ZIP (stream_read_init) (struct ZIP (object) *zip)
 #endif
   }
 
-  mutex_unlock (&zip->read.lock);
+  pthread_mutex_unlock (&zip->read.lock);
 
   return err;
 }
@@ -252,7 +254,7 @@ ZIP (stream_write_init) (struct ZIP (object) *zip)
   ZIP_STREAM *stream = &zip->write.stream;
   int zerr;
 
-  mutex_lock (&zip->write.lock);
+  pthread_mutex_lock (&zip->write.lock);
 
   /* Check whether STREAM has already been initialized */
   if (stream->state)
@@ -308,7 +310,7 @@ ZIP (stream_write_init) (struct ZIP (object) *zip)
 #endif
   }
 
-  mutex_unlock (&zip->write.lock);
+  pthread_mutex_unlock (&zip->write.lock);
 
   return err;
 }
@@ -344,7 +346,7 @@ ZIP (stream_read) (struct ZIP (object) *const zip,
   store_offset_t zip_start  = *zip_offs;
 
 
-  mutex_lock (&zip->read.lock);
+  pthread_mutex_lock (&zip->read.lock);
   assert (zip->read.zip_status != STATUS_IDLE);
 
   /* Check whether we have already reached the end of stream */
@@ -352,7 +354,7 @@ ZIP (stream_read) (struct ZIP (object) *const zip,
   {
     debug (("eof: doing nothing"));
     *len = 0;
-    mutex_unlock (&zip->read.lock);
+    pthread_mutex_unlock (&zip->read.lock);
     return 0;
   }
 
@@ -362,7 +364,7 @@ ZIP (stream_read) (struct ZIP (object) *const zip,
     *len = 0;
     zip->read.zip_status  = STATUS_EOF;
     zip->read.file_status = STATUS_EOF;
-    mutex_unlock (&zip->read.lock);
+    pthread_mutex_unlock (&zip->read.lock);
     return 0;
   }
 
@@ -432,7 +434,7 @@ ZIP (stream_read) (struct ZIP (object) *const zip,
   debug (("requested/read = %i / %i", amount, *len));
   assert (*len <= amount);
 
-  mutex_unlock (&zip->read.lock);
+  pthread_mutex_unlock (&zip->read.lock);
 
   return err;
 }
@@ -482,7 +484,7 @@ ZIP (stream_write) (struct ZIP (object) *const zip,
   }
 
 
-  mutex_lock (&zip->write.lock);
+  pthread_mutex_lock (&zip->write.lock);
   assert (zip->write.zip_status != STATUS_IDLE);
 
   if (zip->write.zip_status == STATUS_EOF)
@@ -490,7 +492,7 @@ ZIP (stream_write) (struct ZIP (object) *const zip,
     /* End of file reached */
     debug (("eof: doing nothing"));
     *len = 0;
-    mutex_unlock (&zip->write.lock);
+    pthread_mutex_unlock (&zip->write.lock);
     return 0;
   }
 
@@ -579,7 +581,7 @@ ZIP (stream_write) (struct ZIP (object) *const zip,
 end:
   debug (("requested/written = %i / %i", amount, *len));
 
-  mutex_unlock (&zip->write.lock);
+  pthread_mutex_unlock (&zip->write.lock);
 
   return err;
 }
@@ -669,7 +671,7 @@ ZIP (read) (struct store *store,
   block_offset = BLOCK_RELATIVE_OFFSET (offset);
 
   /* Lock the file during the whole reading (XXX: not very fine-grained) */
-  mutex_lock (&zip->cache.lock);
+  pthread_mutex_lock (&zip->cache.lock);
   blocks = zip->cache.blocks;
   blocks_size = zip->cache.size;
 
@@ -705,7 +707,7 @@ ZIP (read) (struct store *store,
     datap  = datap + read;
   }
 
-  mutex_unlock (&zip->cache.lock);
+  pthread_mutex_unlock (&zip->cache.lock);
 
   return err;
 }
@@ -766,14 +768,14 @@ ZIP (write) (struct store *store,
   int   block = BLOCK_NUMBER (offset); /* 1st block to read.  */
   const void *datap = buf; /* current pointer */
 
-  mutex_lock (&zip->cache.lock);
+  pthread_mutex_lock (&zip->cache.lock);
   blocks = zip->cache.blocks;
 
   if (offset >= store->size)
   {
     debug (("Trying to write at offs %lli (size=%u)", offset, store->size));
     *amount = 0;
-    mutex_unlock (&zip->cache.lock);
+    pthread_mutex_unlock (&zip->cache.lock);
     return EIO;
   }
 
@@ -824,7 +826,7 @@ ZIP (write) (struct store *store,
     datap  = datap + write;
   }
 
-  mutex_unlock (&zip->cache.lock);
+  pthread_mutex_unlock (&zip->cache.lock);
 
   return err;
 }
@@ -839,7 +841,7 @@ ZIP (set_size) (struct store *store, size_t size)
   char ***blocks;
   size_t newsize, oldsize;	/* Size of BLOCKS */
 
-  mutex_lock (&zip->cache.lock);
+  pthread_mutex_lock (&zip->cache.lock);
   blocks_size = &zip->cache.size;
   blocks      = &zip->cache.blocks;
   oldsize     = *blocks_size;
@@ -886,7 +888,7 @@ ZIP (set_size) (struct store *store, size_t size)
   if (!err)
     store->size = store->end = store->wrap_src = store->runs[0].length = size;
 
-  mutex_unlock (&zip->cache.lock);
+  pthread_mutex_unlock (&zip->cache.lock);
 
   debug (("newsize is %lli (err = %s)", store->size, strerror (err)));
 
@@ -1065,7 +1067,7 @@ ZIP (sync) (struct store *store)
 
   /* Hold the cache lock till the end--anyway, no one should try to get
      this lock since we are called from store_free ().  */
-  mutex_lock (&zip->cache.lock);
+  pthread_mutex_lock (&zip->cache.lock);
   blocks = zip->cache.blocks;
 
   /* Initialize STREAM since this should not have be done before.  */
@@ -1229,9 +1231,9 @@ ZIP (open) (const char *name, int flags,
   zip->store = *store;
   stream = &zip->read.stream;
 
-  mutex_init (&zip->read.lock);
-  mutex_init (&zip->write.lock);
-  mutex_init (&zip->cache.lock);
+  pthread_mutex_init (&zip->read.lock, NULL);
+  pthread_mutex_init (&zip->write.lock, NULL);
+  pthread_mutex_init (&zip->cache.lock, NULL);
 
   (*store)->flags = flags;
   (*store)->block_size = 1;

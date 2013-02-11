@@ -46,7 +46,7 @@ struct cache
   size_t size;
 
   /* Lock of this cache */
-  struct mutex lock;
+  pthread_mutex_t lock;
 };
 
 /* Initializes the cache backend.  READ is the method that will be called

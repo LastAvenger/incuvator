@@ -77,7 +77,7 @@ struct tar_item
 struct tar_list
 {
   struct tar_item *head;
-  struct mutex lock;
+  pthread_mutex_t lock;
 };
 
 /* Unless stated otherwise, all the following functions taking a tar_list
@@ -114,13 +114,13 @@ extern void tar_put_item (struct tar_item **prev_tar, struct tar_item *tar);
 
 /* An iterator.  */
 #define tar_list_iterate(List, Item, Expr1, Expr2) \
-  for ((Item) = (mutex_lock (&(List)->lock), (List)->head); \
+  for ((Item) = (pthread_mutex_lock (&(List)->lock), (List)->head); \
        (Expr1); (Expr2))
 
 /* These two macros can be used to implement critical things (e.g. traversing
    the whole list).  */
-#define tar_list_lock(List)    mutex_lock (&(List)->lock);
-#define tar_list_unlock(List)  mutex_unlock (&(List)->lock);
+#define tar_list_lock(List)    pthread_mutex_lock (&(List)->lock);
+#define tar_list_unlock(List)  pthread_mutex_unlock (&(List)->lock);
 
 
 /** Node information. **/

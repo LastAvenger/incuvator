@@ -32,8 +32,8 @@
 #include "debug.h"
 
 /* Locking/unlocking a node's cache */
-#define LOCK(Node)     mutex_lock (&CACHE_INFO ((Node), lock))
-#define UNLOCK(Node)   mutex_unlock (&CACHE_INFO ((Node), lock));
+#define LOCK(Node)     pthread_mutex_lock (&CACHE_INFO ((Node), lock))
+#define UNLOCK(Node)   pthread_mutex_unlock (&CACHE_INFO ((Node), lock));
 
 /* Tar file callback (in tarfs.c).  */
 static error_t (* read_file) (struct node *node,
@@ -76,7 +76,7 @@ cache_create (struct node *node)
   CACHE_INFO (node, size) = blocks;
   debug (("Node %s: Initial block vector size: %u", node->nn->name, blocks));
 
-  mutex_init (&CACHE_INFO (node, lock));
+  pthread_mutex_init (&CACHE_INFO (node, lock), NULL);
 
   return 0;
 }
