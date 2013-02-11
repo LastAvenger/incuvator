@@ -82,7 +82,7 @@ nsmux_LDADD = \
   -lnetfs \
   -lfshelp \
   -liohelp \
-  -lthreads \
+  -lpthread \
   -lports \
   -lihash \
   -lshouldbeinlibc

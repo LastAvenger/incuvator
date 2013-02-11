@@ -46,7 +46,7 @@
 /*---------------------------------------------------------------------------*/
 /*--------Global Variables---------------------------------------------------*/
 /*The lock protecting the underlying filesystem*/
-struct mutex ulfs_lock = MUTEX_INITIALIZER;
+pthread_mutex_t ulfs_lock = PTHREAD_MUTEX_INITIALIZER;
 /*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -246,7 +246,7 @@ void node_destroy (node_t * np)
     {
       if (np->nn->lnode->node == np)
 	{
-	  mutex_lock (&np->nn->lnode->lock);
+	  pthread_mutex_lock (&np->nn->lnode->lock);
 
 	  /*orphan the light node */
 	  np->nn->lnode->node = NULL;
@@ -290,7 +290,7 @@ error_t node_create_root (node_t ** root_node)
     }
 
   /*Release the lock on the lnode */
-  mutex_unlock (&lnode->lock);
+  pthread_mutex_unlock (&lnode->lock);
 
   /*Store the result in the parameter */
   *root_node = node;
@@ -307,7 +307,7 @@ error_t node_init_root (node_t * node	/*the root node */
   error_t err = 0;
 
   /*Acquire a lock for operations on the underlying filesystem */
-  mutex_lock (&ulfs_lock);
+  pthread_mutex_lock (&ulfs_lock);
 
   /*Open the port to the directory specified in `dir` */
   node->nn->port = file_name_lookup (dir, O_READ | O_DIRECTORY, 0);
@@ -320,7 +320,7 @@ error_t node_init_root (node_t * node	/*the root node */
       LOG_MSG ("node_init_root: Could not open the port for %s.", dir);
 
       /*release the lock and stop */
-      mutex_unlock (&ulfs_lock);
+      pthread_mutex_unlock (&ulfs_lock);
       return err;
     }
 
@@ -337,7 +337,7 @@ error_t node_init_root (node_t * node	/*the root node */
       LOG_MSG ("node_init_root: Could not stat the root node.");
 
       /*unlock the mutex and exit */
-      mutex_unlock (&ulfs_lock);
+      pthread_mutex_unlock (&ulfs_lock);
       return err;
     }
 
@@ -349,7 +349,7 @@ error_t node_init_root (node_t * node	/*the root node */
       PORT_DEALLOC (node->nn->port);
 
       /*unlock the mutex */
-      mutex_unlock (&ulfs_lock);
+      pthread_mutex_unlock (&ulfs_lock);
 
       LOG_MSG ("node_init_root: Could not strdup the directory.");
       return ENOMEM;
@@ -392,7 +392,7 @@ error_t node_init_root (node_t * node	/*the root node */
       PORT_DEALLOC (node->nn->port);
 
       /*unlock the mutex */
-      mutex_unlock (&ulfs_lock);
+      pthread_mutex_unlock (&ulfs_lock);
 
       LOG_MSG ("node_init_root: Could not strdup the name of the root node.");
       return ENOMEM;
@@ -402,7 +402,7 @@ error_t node_init_root (node_t * node	/*the root node */
   node->nn->lnode->name_len = strlen (p);
 
   /*Release the lock for operations on the undelying filesystem */
-  mutex_unlock (&ulfs_lock);
+  pthread_mutex_unlock (&ulfs_lock);
 
   /*Return the result of operations */
   return err;
@@ -557,13 +557,13 @@ error_t node_update (node_t * node)
     return err;			/*return 0; actually */
 
   /*Gain exclusive access to the root node of the filesystem */
-  mutex_lock (&netfs_root_node->lock);
+  pthread_mutex_lock (&netfs_root_node->lock);
 
   /*Construct the full path to `node` */
   err = lnode_path_construct (node->nn->lnode, &path);
   if (err)
     {
-      mutex_unlock (&netfs_root_node->lock);
+      pthread_mutex_unlock (&netfs_root_node->lock);
       return err;
     }
 
@@ -611,7 +611,7 @@ error_t node_update (node_t * node)
   node->nn->flags |= FLAG_NODE_ULFS_UPTODATE;
 
   /*Release the lock on the root node of proxy filesystem */
-  mutex_unlock (&netfs_root_node->lock);
+  pthread_mutex_unlock (&netfs_root_node->lock);
 
   /*Return the result of operations */
   return err;
