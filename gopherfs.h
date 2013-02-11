@@ -22,10 +22,9 @@
 #define __GOPHERFS_H__
 
 #include <stdlib.h>
-#include <cthreads.h>
 #include <maptime.h>
 #include <sys/stat.h>
-/* #include <pthreads.h> */
+#include <pthread.h>
 #include <error.h>
 #include <netdb.h>
 

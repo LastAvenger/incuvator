@@ -29,7 +29,7 @@ SRCS = gopherfs.c args.c netfs.c gopher.c node.c fs.c debug.c dir.c
 LCLHDRS = gopherfs.h fs.h debug.h
 
 OBJS = $(SRCS:.c=.o)
-HURDLIBS = -lnetfs -lfshelp -liohelp -lports
+HURDLIBS = -lnetfs -lfshelp -liohelp -lports -lshouldbeinlibc
 
 INSTALL = install
 
