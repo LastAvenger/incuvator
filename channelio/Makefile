@@ -25,6 +25,7 @@ SRCS = channelio.c io.c node.c open.c
 LCLHDRS = node.h open.h
 
 OBJS = $(SRCS:.c=.o)
-HURDLIBS = trivfs fshelp iohelp channel threads ports ihash shouldbeinlibc
+HURDLIBS = trivfs fshelp iohelp channel ports ihash shouldbeinlibc
+OTHERLIBS = -lpthread
 
 include ../Makeconf

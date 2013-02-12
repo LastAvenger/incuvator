@@ -25,7 +25,7 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
-#include <cthreads.h>
+#include <pthread.h>
 #include <mach.h>
 #include <hurd/hurd_types.h>
 
@@ -43,7 +43,7 @@ struct channel_hub
 {
    /* Should be held when before access to fields of this hub or call to
       any function operating on it.  */
-  struct mutex lock;
+  pthread_pthread_mutex_t lock;
   
   /*  The name of this hub.  Its meaning is class-specific.  May be null
       and is freed by channel_free_hub.  */

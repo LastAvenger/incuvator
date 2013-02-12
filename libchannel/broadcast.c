@@ -51,7 +51,7 @@ broadcast_read (struct channel *channel, size_t amount,
   struct channel_hub *hub = channel->hub;
   struct broadcast_hook *hook = hub->hook;
   
-  mutex_lock (&hub->lock);
+  pthread_mutex_lock (&hub->lock);
 
   hook->wait_count++;
   if (hook->amount == 0 || amount < hook->amount)
@@ -79,7 +79,7 @@ broadcast_read (struct channel *channel, size_t amount,
     memcpy (*buf, hook->buf, hook->amount);
 
   *len = hook->len;
-  mutex_unlock (&hub->lock);
+  pthread_mutex_unlock (&hub->lock);
 
   return 0;
 }
@@ -114,13 +114,13 @@ broadcast_close (struct channel *channel)
 {
   struct broadcast_hook *hook = channel->hub->hook;
 
-  mutex_lock (&channel->hub->lock);
+  pthread_mutex_lock (&channel->hub->lock);
 
   hook->num_channels--;
   if (hook->num_channels == 0)
     channel_close (hook->channel);
 
-  mutex_unlock (&channel->hub->lock);
+  pthread_mutex_unlock (&channel->hub->lock);
 }
 
 

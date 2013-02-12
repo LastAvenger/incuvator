@@ -22,13 +22,13 @@
 #ifndef __OPEN_H__
 #define __OPEN_H__
 
-#include <cthreads.h>
+#include <pthread.h>
 #include <hurd/channel.h>
 
 /* Information about an open session.  */
 struct open
 {
-  struct mutex lock;
+  pthread_mutex_t lock;
   struct channel *channel;
 
   /* The current owner of the session.  For terminals, this affects

@@ -43,7 +43,7 @@ channel_alloc_hub (const struct channel_class *class,
   if (flags & CHANNEL_HARD_WRITEONLY)
     flags |= CHANNEL_WRITEONLY;
 
-  mutex_init (&new->lock);
+  pthread_mutex_init (&new->lock, NULL);
   new->name = 0;
   new->flags = flags;
   new->hook = 0;
@@ -73,7 +73,7 @@ channel_free_hub (struct channel_hub *hub)
   if (hub->class->clear_hub)
     (*hub->class->clear_hub) (hub);
 
-  mutex_clear (&hub->lock);
+  pthread_mutex_destroy (&hub->lock);
   free (hub->name);
 
   for (i = 0; i < hub->num_children; i++)
