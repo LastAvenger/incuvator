@@ -39,7 +39,7 @@ LDFLAGS = -lfshelp
 all: $(TARGETS)
 
 liblisptrans.so: $(OBJS)
-	$(CC) -shared -Wl \
+	$(CC) -shared \
 		-o liblisptrans.so $(OBJS) $(LDFLAGS) -lfshelp
 
 $(GENERATED_IO_SERVER).c: $(IO_DEFS)
