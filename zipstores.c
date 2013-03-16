@@ -260,7 +260,7 @@ ZIP (stream_write_init) (struct ZIP (object) *zip)
   if (stream->state)
   {
     zerr = ZIP_COMPRESS_END (stream);
-    err  = ZIP (error) (stream, err);
+    err  = ZIP (error) (stream, zerr);
     assert_perror (err);
   }
 #ifdef ZIP_HAS_HEADER
