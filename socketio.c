@@ -42,7 +42,7 @@
 #include <hurd/iohelp.h>
 #include <maptime.h>
 
-#include <version.h>
+#include "version.h"
 
 
 /* Netfs initialization.  */
@@ -534,13 +534,13 @@ netfs_S_dir_lookup (struct protid *diruser,
       /* Set things up in the state expected by the code from gotit: on. */
       dnp = 0;
       np = diruser->po->np;
-      mutex_lock (&np->lock);
+      pthread_mutex_lock (&np->lock);
       netfs_nref (np);
       goto gotit;
     }
 
   dnp = diruser->po->np;
-  mutex_lock (&dnp->lock);
+  pthread_mutex_lock (&dnp->lock);
 
   netfs_nref (dnp);		/* acquire a reference for later netfs_nput */
 
@@ -582,7 +582,7 @@ netfs_S_dir_lookup (struct protid *diruser,
 	    if (! lastcomp)
 	      strcpy (retry_name, nextname);
 	    err = 0;
-	    mutex_unlock (&dnp->lock);
+	    pthread_mutex_unlock (&dnp->lock);
 	    goto out;
 	  }
 	else if (diruser->po->root_parent != MACH_PORT_NULL)
@@ -596,7 +596,7 @@ netfs_S_dir_lookup (struct protid *diruser,
 	    if (!lastcomp)
 	      strcpy (retry_name, nextname);
 	    err = 0;
-	    mutex_unlock (&dnp->lock);
+	    pthread_mutex_unlock (&dnp->lock);
 	    goto out;
 	  }
 	else
@@ -743,11 +743,11 @@ netfs_attempt_lookup_improved (struct iouser *user, struct node *dir,
 
  out:
   fshelp_touch (&dir->nn_stat, TOUCH_ATIME, maptime);
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   if (err)
     *node = 0;
   else if (*node)
-    mutex_lock (&(*node)->lock);
+    pthread_mutex_lock (&(*node)->lock);
   return err;
 }
 
@@ -992,7 +992,7 @@ netfs_attempt_create_file (struct iouser *user, struct node *dir,
 			   char *name, mode_t mode, struct node **np)
 {
   *np = 0;
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
   return EOPNOTSUPP;
 }
 
