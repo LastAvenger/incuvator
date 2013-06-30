@@ -191,7 +191,7 @@ xgethostbyname (char *hostname, struct hostent *hostaddr, char **buf)
   char *tmp_hostbuf;
   int herr, err;
 
-  hostbuf_len = 8;
+  hostbuf_len = 64;
   tmp_hostbuf = malloc (hostbuf_len);
   if (! tmp_hostbuf)
     return ENOMEM;
@@ -373,7 +373,7 @@ node_socket_open (struct iouser *user, struct node *np, char *netport_s,
 {
   uint16_t netport = strtol (netport_s, NULL, 10);
   char *hostname = np->nn->hostname;
-  socket_t sock;
+  socket_t sock = MACH_PORT_NULL;
   error_t err;
   int style;
 
@@ -385,6 +385,8 @@ node_socket_open (struct iouser *user, struct node *np, char *netport_s,
     case PROTOCOL_ID_UDP:
       style = SOCK_DGRAM;
       break;
+    default:
+      return EINVAL;
     }
 
   err = socket_open (style, hostname, netport, &sock);
@@ -435,9 +437,10 @@ socket_open (int style, char *hostname, uint16_t netport,
   char *buf;
 
   err = xgethostbyname (hostname, &hostaddr, &buf);
-  if (! err)
+  if (! err) {
     sockaddr_init (addr, AF_INET, &hostaddr, netport);
-  free (buf);
+    free (buf);
+  }
   if (! err)
     err = socket_create (socket_server, style, 0, &sock);
   if (! err)
