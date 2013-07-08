@@ -211,7 +211,7 @@ tarfs_parse_opts (int key, char *arg, struct argp_state *sate)
     case ARGP_KEY_ARG:
       tarfs_options.file_name = strdup (arg);
       if (!tarfs_options.file_name || !strlen (tarfs_options.file_name))
-	error (1, 1, "No archive specified.");
+	argp_error (sate, "No archive specified.");
   }
 
   return 0;
