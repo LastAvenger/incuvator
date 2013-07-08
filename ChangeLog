@@ -1,4 +1,8 @@
-2013-07-05   Cyril Roelandt  <tipecaml@gmail.com>
+2013-07-08  Samuel Thibault <samuel.thibault@ens-lyon.org>
+
+	* tarfs.c (tarfs_parse_opts): Rename sate parameter into state.
+
+2013-07-05  Cyril Roelandt  <tipecaml@gmail.com>
 
 	* tarfs.c (tarfs_parse_opts): Gracefully handle the errors using
 	argp_error instead of error.

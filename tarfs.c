@@ -175,7 +175,7 @@ read_from_file (struct node *node, off_t offset, size_t howmuch,
 
 /* Argp options parser.  */
 error_t
-tarfs_parse_opts (int key, char *arg, struct argp_state *sate)
+tarfs_parse_opts (int key, char *arg, struct argp_state *state)
 {
   switch (key)
   {
@@ -211,7 +211,7 @@ tarfs_parse_opts (int key, char *arg, struct argp_state *sate)
     case ARGP_KEY_ARG:
       tarfs_options.file_name = strdup (arg);
       if (!tarfs_options.file_name || !strlen (tarfs_options.file_name))
-	argp_error (sate, "No archive specified.");
+	argp_error (state, "No archive specified.");
   }
 
   return 0;
