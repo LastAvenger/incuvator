@@ -36,7 +36,7 @@ void
 tar_list_init (struct tar_list *list)
 {
   list->head = NULL;
-  mutex_init (&list->lock);
+  pthread_mutex_init (&list->lock, NULL);
 }
 
 /* Make a tar item containing the given information. NEW points to the
@@ -71,7 +71,7 @@ tar_insert_item (struct tar_list *list,
 
   assert (prev != new);
 
-  mutex_lock (&list->lock);
+  pthread_mutex_lock (&list->lock);
   head = &list->head;
 
   if (! prev)
@@ -97,7 +97,7 @@ tar_insert_item (struct tar_list *list,
   if (next)
     next->prev = new;
 
-  mutex_unlock (&list->lock);
+  pthread_mutex_unlock (&list->lock);
 
   return 0;
 }
@@ -136,9 +136,9 @@ tar_unlink_item_safe (struct tar_list *list, struct tar_item *item)
 void
 tar_unlink_item (struct tar_list *list, struct tar_item *tar)
 {
-  mutex_lock (&list->lock);
+  pthread_mutex_lock (&list->lock);
   tar_unlink_item_safe (list, tar);
-  mutex_unlock (&list->lock);
+  pthread_mutex_unlock (&list->lock);
 }
 
 

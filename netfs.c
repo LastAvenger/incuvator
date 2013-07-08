@@ -77,13 +77,13 @@ netfs_attempt_lookup (struct iouser *user, struct node *dir,
   if (!err && *np)
   {
     if (*np != dir)
-      mutex_lock (&(*np)->lock);
+      pthread_mutex_lock (&(*np)->lock);
 
     debug (("Node %s: %i references", name, (*np)->references));
     netfs_nref (*np);
   }
 
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   return err;
 }
@@ -640,7 +640,7 @@ netfs_attempt_unlink (struct iouser *user, struct node *dir,
 
     if (!err)
     {
-      mutex_lock (&node->lock);
+      pthread_mutex_lock (&node->lock);
 
       debug (("Node %s: %i references", name, node->references));
       err = fshelp_isowner (&node->nn_stat, user);
@@ -648,7 +648,7 @@ netfs_attempt_unlink (struct iouser *user, struct node *dir,
       if (!err)
 	err = backend.unlink_node (node);
 
-      mutex_unlock (&node->lock);
+      pthread_mutex_unlock (&node->lock);
     }
   }
   else
@@ -758,12 +758,12 @@ netfs_attempt_create_file (struct iouser *user, struct node *dir,
     if (!err && *np)
     {
       debug (("Node %s: %i references", name, (*np)->references));
-      mutex_lock (&(*np)->lock);
+      pthread_mutex_lock (&(*np)->lock);
       netfs_nref (*np);
     }
   }
 
-  mutex_unlock (&dir->lock);
+  pthread_mutex_unlock (&dir->lock);
 
   return err;
 }

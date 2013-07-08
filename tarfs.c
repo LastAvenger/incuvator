@@ -77,7 +77,7 @@ const struct argp_option fs_options[] =
 
 /* Tar file store & lock.  */
 static struct store *tar_file;
-static struct mutex  tar_file_lock;
+static pthread_mutex_t  tar_file_lock;
 
 /* Archive parsing hook (see tar.c) */
 extern int (* tar_header_hook) (tar_record_t *, struct archive *);
@@ -143,7 +143,7 @@ read_from_file (struct node *node, off_t offset, size_t howmuch,
   store_offset_t start = NODE_INFO(node)->tar->offset;
   void *d = data;
 
-  mutex_lock (&tar_file_lock);
+  pthread_mutex_lock (&tar_file_lock);
 
   if (!tar_file)
     err = open_store ();
@@ -155,7 +155,7 @@ read_from_file (struct node *node, off_t offset, size_t howmuch,
 		      &d,
 		      actually_read);
 
-  mutex_unlock (&tar_file_lock);
+  pthread_mutex_unlock (&tar_file_lock);
 
   if (err)
     return err;
@@ -280,11 +280,11 @@ tarfs_set_options (char *argz, size_t argz_len)
   {
     if (!tarfs_options.readonly)
     {
-      mutex_lock (&tar_file_lock);
+      pthread_mutex_lock (&tar_file_lock);
       tarfs_options.readonly = 1;
       close_store ();
       err = open_store ();
-      mutex_unlock (&tar_file_lock);
+      pthread_mutex_unlock (&tar_file_lock);
 
       if (err)
 	tarfs_options.readonly = 0;
@@ -296,11 +296,11 @@ tarfs_set_options (char *argz, size_t argz_len)
   {
     if (tarfs_options.readonly)
     {
-      mutex_lock (&tar_file_lock);
+      pthread_mutex_lock (&tar_file_lock);
       tarfs_options.readonly = 0;
       close_store ();
       err = open_store ();
-      mutex_unlock (&tar_file_lock);
+      pthread_mutex_unlock (&tar_file_lock);
 
       if (err)
 	tarfs_options.readonly = 1;
@@ -511,15 +511,18 @@ tarfs_init (struct node **root, struct iouser *user)
     error_t err;
 
     /* Go ahead: parse and build.  */
-    mutex_lock (&tar_file_lock);
+    pthread_mutex_lock (&tar_file_lock);
     err = tar_open_archive (tar_file);
-    mutex_unlock (&tar_file_lock);
+    pthread_mutex_unlock (&tar_file_lock);
 
     if (err)
       error (1, 0, "Invalid tar archive (%s)", tarfs_options.file_name);
 #if 0
     else
-      cthread_fork ((cthread_fn_t) sync_archive, NULL);
+      {
+        pthread_t t;
+        pthread_create (&t, NULL, (void*(*)(void*)) sync_archive, NULL);
+      }
 #endif
   }
 
@@ -586,7 +589,10 @@ tarfs_init (struct node **root, struct iouser *user)
   if (st.st_size)
   {
     if (tarfs_options.threaded)
-      cthread_fork ((cthread_fn_t) read_archive, NULL);
+      {
+        pthread_t t;
+        pthread_create(&t, NULL, (void*(*)(void*)) read_archive, NULL);
+      }
     else
       read_archive ();
   }
@@ -1083,7 +1089,7 @@ tarfs_sync_fs (int wait)
 
     while (1)
     {
-      mutex_lock (&tar_file_lock);
+      pthread_mutex_lock (&tar_file_lock);
 
       if (!tar_file)
 	err = open_store ();
@@ -1091,7 +1097,7 @@ tarfs_sync_fs (int wait)
       if (!err)
 	err = store_write (tar_file, offset, buf, len, amount);
 
-      mutex_unlock (&tar_file_lock);
+      pthread_mutex_unlock (&tar_file_lock);
 
       cnt++;
 
@@ -1139,7 +1145,7 @@ tarfs_sync_fs (int wait)
       size_t size;
 
       /* Lock the node first */
-      mutex_lock (&node->lock);
+      pthread_mutex_lock (&node->lock);
       have_to_sync = (tar->offset != file_offs + RECORDSIZE);
       path = fs_get_path_from_root (netfs_root_node, node);
       size = node->nn_stat.st_size;
@@ -1258,7 +1264,7 @@ tarfs_sync_fs (int wait)
 
       cache_free (node);
       free (path);
-      mutex_unlock (&node->lock);
+      pthread_mutex_unlock (&node->lock);
 
       /* Go to next item.  */
       tar = tar->next;
