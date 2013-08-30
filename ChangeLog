@@ -1,3 +1,8 @@
+2013-08-30  Pino Toscano  <toscano.pino@tiscali.it>
+
+	* debug.c (debug_set_file): Add format string in invocation of
+	error.
+
 2013-07-08  Samuel Thibault <samuel.thibault@ens-lyon.org>
 
 	* tarfs.c (tarfs_parse_opts): Rename sate parameter into state.

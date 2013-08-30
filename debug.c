@@ -43,7 +43,7 @@ debug_set_file (const char *name)
   {
     debug_file = fopen (name, "w+");
     if (!debug_file)
-      error (0, errno, name);
+      error (0, errno, "%s", name);
   }
 }
 
