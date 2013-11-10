@@ -119,8 +119,8 @@ static union record *
 tar_get_next_record (struct archive *archive)
 {
     error_t err;
-    void *buf = NULL;
-    size_t n = 0;
+    void *buf = mmap(NULL, RECORDSIZE, PROT_READ|PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    size_t n = RECORDSIZE;
 
     err = store_read (archive->tar_file, archive->current_tar_position, RECORDSIZE, &buf, &n);
     if (err)
