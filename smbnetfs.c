@@ -925,11 +925,12 @@ smbfs_init ()
   if(err)
     return;  
    
+  pthread_mutex_init (&smb_mutex, NULL);
+
   create_root_node ();
 }
 
 void
 smbfs_terminate ()
 {
-  pthread_mutex_init (&smb_mutex, NULL);
 }
