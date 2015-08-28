@@ -11,26 +11,28 @@ LIBS          += $(libmachdev_path) -ldde_linux26.o -ldde_linux26_net $(libddeki
 CFLAGS        += -g -I$(PKGDIR)/include -I$(BUILDDIR)/include
 LDFLAGS       += -g
 
+CFLAGS += -DCONFIG_B44_PCI -DCONFIG_8139TOO_8129
+
 # DDE configuration
 include $(L4DIR)/Makeconf
 
 include $(L4DIR)/mk/prog.mk
 
-VERSION=2.6.29.6
-
-SRC=linux-$(VERSION)/drivers/net
+SRC=linux/drivers/net
 
 # TODO: should take driver order from Linux
 BLACKLIST = \
 	    This is a dumb driver \
 	    $(SRC)/pci-skeleton.c \
+	    \
 	    These dont build at all \
 	    \
 	    $(SRC)/netx-eth.c $(SRC)/smc911x.c $(wildcard $(SRC)/irda/*) \
-	    $(wildcard $(SRC)/arm/*.c) $(SRC)/bfin_mac.c \
+	    $(wildcard $(SRC)/arm/*.c) $(SRC)/bfin_mac.c $(SRC)/s6gmac.c \
 	    $(SRC)/declance.c $(wildcard $(SRC)/ehea/*) $(wildcard $(SRC)/*82596.c) \
-	    $(wildcard $(SRC)/atlx/*) $(SRC)/pasemi_mac_ethtool.c \
-	    $(wildcard $(SRC)/wireless/*) $(wildcard $(SRC)/wireless/*/*) \
+	    $(wildcard $(SRC)/atlx/*) $(SRC)/xilinx_emaclite.c $(wildcard $(SRC)/ll_temac_*.c) \
+	    $(SRC)/davinci_emac.c $(SRC)/pasemi_mac_ethtool.c \
+	    $(wildcard $(SRC)/wireless/*) $(wildcard $(SRC)/wireless/*/*) $(wildcard $(SRC)/wireless/*/*/*) \
 	    $(SRC)/apne.c \
 	    $(SRC)/sunbmac.c $(SRC)/sunqe.c $(SRC)/myri_sbus.c $(SRC)/sunlance.c $(SRC)/sunhme.c \
 	    $(SRC)/sungem_phy.c $(SRC)/sungem.c $(SRC)/mace.c $(SRC)/bmac.c $(SRC)/sunvnet.c \
@@ -39,8 +41,10 @@ BLACKLIST = \
 	    $(wildcard $(SRC)/sun3*) \
 	    $(SRC)/au1000_eth.c \
 	    $(SRC)/s2io.c $(SRC)/sonic.c \
+	    $(SRC)/cnic.c \
 	    $(wildcard $(SRC)/wimax/i2400m/*) \
 	    $(wildcard $(SRC)/ibm_newemac/*) \
+	    $(wildcard $(SRC)/stmmac/*) \
 	    $(wildcard $(SRC)/hamradio/*) \
 	    $(wildcard $(SRC)/usb/*) \
 	    $(wildcard $(SRC)/sfc/*) \
@@ -49,6 +53,8 @@ BLACKLIST = \
 	    $(wildcard $(SRC)/tokenring/*) \
 	    $(wildcard $(SRC)/wan/*) \
 	    $(wildcard $(SRC)/wan/*/*) \
+	    $(wildcard $(SRC)/can/*) \
+	    $(wildcard $(SRC)/can/*/*) \
 	    $(wildcard $(SRC)/cris/*) \
 	    $(wildcard $(SRC)/fs_enet/*) \
 	    $(wildcard $(SRC)/arcnet/*) \
@@ -70,33 +76,59 @@ BLACKLIST = \
 	    $(SRC)/phy/fixed.c $(SRC)/stnic.c $(SRC)/mvme147.c $(SRC)/meth.c $(SRC)/macb.c \
 	    $(SRC)/korina.c $(SRC)/b44.c $(SRC)/sb1250-mac.c $(SRC)/fec.c $(SRC)/ne-h8300.c \
 	    $(SRC)/mipsnet.c $(SRC)/tsi108_eth.c \
+	    $(SRC)/fsl_pq_mdio.c \
+	    $(SRC)/bcm63xx_enet.c \
 	    \
-	    These are missing some symbols e.g. tasklet_kill \
-	    \
-	    $(SRC)/ifb.c $(SRC)/niu.c $(SRC)/cxgb3/cxgb3_offload.c $(SRC)/cxgb3/sge.c \
-	    $(SRC)/rrunner.c $(SRC)/sundance.c $(SRC)/ppp_synctty.c $(SRC)/ppp_async.c \
-	    $(SRC)/macvlan.c $(SRC)/tun.c $(SRC)/smc91x.c \
-	    $(wildcard $(SRC)/enic/*) \
-	    $(wildcard $(SRC)/ixgbe/*) \
-	    $(SRC)/pppox.c $(SRC)/3c59x.c $(SRC)/znet.c $(SRC)/slip.c $(SRC)/netconsole.c \
-	    $(SRC)/jme.c $(SRC)/pppoe.c $(SRC)/pppol2tp.c $(SRC)/veth.c $(SRC)/ppp_deflate.c \
-	    $(SRC)/defxx.c \
-	    $(wildcard $(SRC)/myri10ge/*) \
-	    $(SRC)/acenic.c $(SRC)/fealnx.c $(SRC)/ppp_generic.c $(SRC)/via-rhine.c \
-	    $(SRC)/ppp_mppe.c $(SRC)/plip.c $(SRC)/bnx2x_main.c $(SRC)/tulip/winbond-840.c \
-	    $(SRC)/amd8111e.c \
-	    $(wildcard $(SRC)/igb/*) \
-	    $(SRC)/chelsio/sge.c $(SRC)/chelsio/subr.c $(SRC)/chelsio/cxgb2.c \
-	    $(SRC)/bnx2.c $(SRC)/tc35815.c \
-	    $(wildcard $(SRC)/be$(SRC)/*) \
 	    $(wildcard $(SRC)/cxgb3/*) \
-	    $(SRC)/ne3210.c $(SRC)/enc28j60.c $(SRC)/r8169.c $(SRC)/xtsonic.c $(SRC)/virtio_net.c \
-	    $(SRC)/dl2k.c $(SRC)/smsc911x.c $(SRC)/ibmlana.c $(SRC)/sis190.c $(SRC)/bsd_comp.c \
+	    $(SRC)/ifb.c \
+	    $(wildcard $(SRC)/igb/*) \
+	    $(wildcard $(SRC)/ixgbe/*) \
+	    $(SRC)/macvlan.c $(SRC)/niu.c \
+	    $(SRC)/smsc911x.c \
+	    $(SRC)/tulip/dmfe.c \
+	    $(wildcard $(SRC)/vxge/*) \
+	    $(SRC)/xtsonic.c \
 	    \
-	    These are missing some symbols which should be there already \
+	    These are not usedful \
 	    \
-	    $(wildcard $(SRC)/tulip/*)
+	    $(SRC)/loopback.c \
+	    $(SRC)/eql.c \
+	    $(SRC)/ppp_generic.c $(SRC)/ppp_mppe.c $(SRC)/plip.c \
+	    $(SRC)/ppp_synctty.c $(SRC)/ppp_async.c $(SRC)/bsd_comp.c \
+	    $(SRC)/pppox.c $(SRC)/pppoe.c $(SRC)/pppol2tp.c $(SRC)/ppp_deflate.c \
+	    $(SRC)/tun.c \
+	    $(SRC)/slip.c $(SRC)/netconsole.c \
+	    $(SRC)/veth.c $(SRC)/virtio_net.c \
+	    \
+	    These are missing some symbols \
+	    \
+	    missing zlib_* crc32c \
+	    $(wildcard $(SRC)/bnx2x_*.c) \
+	    missing ktime_get_ts \
+	    $(SRC)/chelsio/sge.c \
+	    $(SRC)/chelsio/subr.c \
+	    $(SRC)/chelsio/cxgb2.c \
+	    missing alloc_fddidev fddi_type_trans \
+	    $(SRC)/defxx.c \
+	    missing spi_sync spi_write_then_read spi_register_driver \
+	    $(SRC)/enc28j60.c \
+	    missing lro_* \
+	    $(wildcard $(SRC)/enic/*) \
+	    missing mca_* \
+	    $(SRC)/ibmlana.c \
+	    missing spi_sync spi_register_driver  \
+	    $(SRC)/ks8851.c \
+	    $(SRC)/ks8842.c \
+	    missing __iowrite64_copy lro_* mtrr_add ioremap_wc mtrr_del \
+	    $(wildcard $(SRC)/myri10ge/*) \
+	    missing high_memory \
+	    $(SRC)/ne3210.c \
+	    missing *hippi* \
+	    $(SRC)/rrunner.c \
+	    missing readsl/w writesl/w \
+	    $(SRC)/smc91x.c \
 
+# This one is included by others, don't build it by itself!
 NO_BUILD = dde/lib8390.c
 
 SRC_ORIG := $(filter-out $(BLACKLIST),$(shell find $(SRC) -name \*.c))
