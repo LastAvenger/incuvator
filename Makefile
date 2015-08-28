@@ -30,7 +30,7 @@ BLACKLIST = \
 	    $(SRC)/netx-eth.c $(SRC)/smc911x.c $(wildcard $(SRC)/irda/*) \
 	    $(wildcard $(SRC)/arm/*.c) $(SRC)/bfin_mac.c $(SRC)/s6gmac.c \
 	    $(SRC)/declance.c $(wildcard $(SRC)/ehea/*) $(wildcard $(SRC)/*82596.c) \
-	    $(wildcard $(SRC)/atlx/*) $(SRC)/xilinx_emaclite.c $(wildcard $(SRC)/ll_temac_*.c) \
+	    $(SRC)/atlx/atl1.c $(SRC)/atlx/atlx.c $(SRC)/xilinx_emaclite.c $(wildcard $(SRC)/ll_temac_*.c) \
 	    $(SRC)/davinci_emac.c $(SRC)/pasemi_mac_ethtool.c \
 	    $(wildcard $(SRC)/wireless/*) $(wildcard $(SRC)/wireless/*/*) $(wildcard $(SRC)/wireless/*/*/*) \
 	    $(SRC)/apne.c \
